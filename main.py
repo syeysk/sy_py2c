@@ -17,7 +17,7 @@ def check_type_char(value):
     return isinstance(value, int) and -128 <= value <= 127
 
 def check_type_unsigned_char(value):
-    return isinstance(value, int) and 0 <= value <= 255
+    return (isinstance(value, int) and 0 <= value <= 255) or (isinstance(value, str) and len(value) == 1 and bytes(value, 'ascii')[0] <= 255)
 
 def check_type_int(value):
     return isinstance(value, int) and -32768 <= value <= 32767
@@ -26,14 +26,14 @@ def check_type_unsigned_int(value):
     return isinstance(value, int) and 0 <= value <= 65535
 
 def check_type_long_int(value):
-    return isinstance(value, int) and 0 <= value <= 65535
+    return isinstance(value, int) and 0 <= value <= 0
 
 
 c_types = {
     'char': check_type_char,
-    'unsigned_char': check_type_unsigned_char,
+    'unsigned char': check_type_unsigned_char,
     'int': check_type_int,
-    'unsigned_int': check_type_unsigned_int,
+    'unsigned int': check_type_unsigned_int,
 }
 
 class OpMap:
@@ -62,7 +62,7 @@ def guess_type_by_class(value):
 opmap = OpMap()
 buffer = []
 annotations = {}
-
+previous_instr = None
 def main(source_code):
     for instr in dis.get_instructions(source_code):
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
@@ -82,27 +82,54 @@ def main(source_code):
             #if buf_instr.c_type == 'char' and len(buf_instr.source_value) > 1:
             #    print('{} {}[{}] = "{}";'.format(buf_instr.c_type, instr.argval, len(buf_instr.source_value), buf_instr.source_value))
             #else:
-            print('{} {} = {};'.format(buf_instr.c_type, instr.argval, buf_instr.c_view))
+            if instr.argval in annotations:
+                  print('{} = {};'.format(instr.argval, buf_instr.c_view))
+            instr.variable_value = buf_instr.argval
             
-            source_type = annotations.setdefault(instr.argval, buf_instr.c_type)
-            if source_type != buf_instr.c_type:
-                print('TypeError: var "{}" has type "{}", but has got type "{}"'.format(instr.argval, source_type, buf_instr.c_type))
-                print('Line is', buf_instr.starts_line)
-                exit()
+            previous_instr = instr
+            
+            #source_type = annotations.setdefault(instr.argval, buf_instr.c_type)
+            #if source_type != buf_instr.c_type:
+            #    print('TypeError: var "{}" has type "{}", but has got type "{}"'.format(instr.argval, source_type, buf_instr.c_type))
+            #    print('Line is', buf_instr.starts_line)
+            #    exit()
 
         elif instr.opcode == opmap.STORE_SUBSCR:
         
-            buffer_instr_key = buffer.pop()
+            buf_instr_key = buffer.pop()
             name = buffer.pop().argval
-            buffer_instr_value = buffer.pop()
+            buf_instr_value = buffer.pop()
 
             if name == '__annotations__':
-                if buffer_instr_key.argval not in annotations:
-                    c_type = guess_type_by_class(getattr(__builtins__, buffer_instr_value.argval))
-                    print('{} {};'.format(c_type, buffer_instr_key.argval))
-                    annotations[buffer_instr_key.argval] = c_type
+                instr_var = buf_instr_key
+                instr_type = buf_instr_value
+                if previous_instr and previous_instr.opcode == opmap.STORE_NAME:
+                    if instr_var.argval == previous_instr.argval:
+                        var_value = previous_instr.variable_value
+                        check_type = c_types.get(instr_type.argval)
+                        if not check_type:
+                            print('Unknown type: {}'.format(instr_type.argval))
+                            exit()
+                            
+                        if not (var_value is None or check_type(var_value)):
+                            print('Unmatched type {} for value {}'.format(instr_type.argval, var_value))
+                            exit()
+                            
+                        if var_value is None:
+                            print('{} {};'.format(instr_type.argval, instr_var.argval))
+                        else:
+                            print('{} {} = {};'.format(instr_type.argval, instr_var.argval, var_value))
+                    else:
+                        print('{} {};'.format(instr_type.argval, instr_var.argval))
+                else:
+                    print('{} {};'.format(instr_type.argval, instr_var.argval))
+                    
+                annotations[instr_var.argval] = instr_type.argval
+                #if buf_instr_key.argval not in annotations:
+                #    c_type = guess_type_by_class(getattr(__builtins__, buf_instr_value.argval))
+                #    print('{} {};'.format(c_type, buf_instr_key.argval))
             else:
-                print('{}[{}] = {};'.format(name, buffer_instr_key.argval, buffer_instr_.argval))
+                print('{}[{}] = {};'.format(name, buf_instr_key.argval, buf_instr_.argval))
 
         # Binary operations
 
@@ -205,6 +232,11 @@ def main(source_code):
                
             arg1.c_view = '({} | {})'.format(arg1.c_view, arg2.c_view)
 
+        elif instr.opcode == opmap.SETUP_ANNOTATIONS:
+            continue
+        else:
+            print('Unknown opname: {} {}'.format(instr.opcode, instr.opname))
+
         #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
         #elif instr.opcode == opmap.BINARY_FLOOR_DIVIDE: # TODO: '//'
         #elif instr.opcode == opmap.BINARY_MATRIX_MULTIPLY: # TODO: '@'
@@ -222,6 +254,8 @@ if __name__ == '__main__':
 var1: 'unsigned int' = 10    # unsigned int var1 = 10;
 var2: 'unsigned int' = None  # unsigned int var2;
 var3: 'unsigned int'         # unsigned int var1;
+var4: 'unsigned char' = 'a'
+var5: 'unsigned char' = 20
 
 a = 10
 b: int = 25
