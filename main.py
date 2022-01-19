@@ -3,7 +3,9 @@
 - присваивание переменным константных значений: целые положительные числа и строки.
 
 Ограничения:
-- все целые положительные числа по умолчанию имеют c-тип "unsigned int"
+- типы всегда объявлять через аннотацию при инициализации.
+- все целые положительные числа по умолчанию имеют c-тип "int"
+- строки по умолчанию - тип "unsigned char"
 - аннотация типов сработает, если она укахана перед присвоением. Если указана в мемоент или после присвоения, то аннотация прогнорируется
 
 
@@ -28,12 +30,16 @@ def check_type_unsigned_int(value):
 def check_type_long_int(value):
     return isinstance(value, int) and 0 <= value <= 0
 
+def check_type_void(value):
+    return value is None
+
 
 c_types = {
     'char': check_type_char,
     'unsigned char': check_type_unsigned_char,
     'int': check_type_int,
     'unsigned int': check_type_unsigned_int,
+    'void': check_type_void,
 }
 
 class OpMap:
@@ -78,6 +84,9 @@ def main(source_code):
             buffer.append(instr)
 
         elif instr.opcode == opmap.STORE_NAME:
+            if not buffer:  # clear afte MAKE_FUNCTION operator
+                continue
+                
             buf_instr = buffer.pop()
             #if buf_instr.c_type == 'char' and len(buf_instr.source_value) > 1:
             #    print('{} {}[{}] = "{}";'.format(buf_instr.c_type, instr.argval, len(buf_instr.source_value), buf_instr.source_value))
@@ -131,6 +140,20 @@ def main(source_code):
             else:
                 print('{}[{}] = {};'.format(name, buf_instr_key.argval, buf_instr_.argval))
 
+        elif instr.opcode == opmap.MAKE_FUNCTION:
+            instr_funcname = buffer.pop()
+            instr_funcobj = buffer.pop()
+            
+            print('{}() {{}};'.format(instr_funcname.argval))
+
+        elif instr.opcode == opmap.BUILD_CONST_KEY_MAP:
+            
+            buffer.pop() # deleting ('return',) here
+            c_type_name = buffer.pop().argval
+            func_name = buffer.pop().argval
+            
+            annotations[func_name] = c_type_name
+        
         # Binary operations
 
         elif instr.opcode == opmap.BINARY_ADD:
@@ -249,22 +272,34 @@ def main(source_code):
         #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
         #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
 
+
 if __name__ == '__main__':
     source_code = """
 var1: 'unsigned int' = 10    # unsigned int var1 = 10;
 var2: 'unsigned int' = None  # unsigned int var2;
-var3: 'unsigned int'         # unsigned int var1;
+var3: 'unsigned int'         # unsigned int var3;
 var4: 'unsigned char' = 'a'
 var5: 'unsigned char' = 20
 
-a = 10
-b: int = 25
-novalue: int
-yesvalue: int = a
-cbf = 10
-cbf2 = cbf * (24 + a)
-cbf2 = cbf * 24 + a
-cbf2 = 24 + a * cbf
+def func1() -> 'void': # void func1() {};
+    return None
+
+def func2() -> 'unsigned char': # unsigned char func2() {};
+    return 'c'
+
+def func3() -> 'unsigned char':
+    return 'c', 6
+
+var5 = func2()
+
+#a = 10
+#b: int = 25
+#novalue: int
+#yesvalue: int = a
+cbf: 'unsigned int' = 10
+cbf2: 'unsigned int' = cbf * (24 + var1) # TODO: проверять все операнды на соответствие типа
+cbf2 = cbf * 24 + var1
+cbf2 = 24 + var1 * cbf
 cbf2 = cbf - 34
 cbf2 = cbf * 34
 cbf2 = cbf / 34
