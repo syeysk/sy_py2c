@@ -32,13 +32,13 @@ class OpMap:
         return dis.opmap[key]
 
 
-def guess_type(value):
-    if isinstance(value, int):
-        return 'unsigned int', str(value)
-    elif isinstance(value, str):
-        return 'char', '"{}"'.format(value)
+#def guess_type(value):
+#    if isinstance(value, int):
+#        return 'unsigned int', str(value)
+#    elif isinstance(value, str):
+#        return 'char', '"{}"'.format(value)
     
-    return 'unknown', str(value)
+#    return 'unknown', str(value)
 
 
 #def guess_type_by_class(value):
@@ -58,9 +58,11 @@ functions = {}
 def main(source_code):
     for instr in dis.get_instructions(source_code):
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
-        print('  ', instr.opname.ljust(10), instr.argval)
+        #print('  ', instr.opname.ljust(10), instr.argval)
         if instr.opcode == opmap.LOAD_CONST:
-            instr.c_type, instr.c_view = guess_type(instr.argval)
+            #instr.c_type, instr.c_view = guess_type(instr.argval)
+            instr.c_type = ''
+            instr.c_view = '"{}"'.format(instr.argval) if isinstance(instr.argval, str) else str(instr.argval)
             #instr.source_value = instr.argval
             buffer.append(instr)
 
@@ -70,7 +72,7 @@ def main(source_code):
             buffer.append(instr)
 
         elif instr.opcode == opmap.STORE_NAME:
-            if not buffer:  # clear afte MAKE_FUNCTION operator
+            if not buffer:  # it's clear after MAKE_FUNCTION operator
                 continue
                 
             buf_instr = buffer.pop()
@@ -80,6 +82,7 @@ def main(source_code):
             if instr.argval in annotations:
                   print('{} = {};'.format(instr.argval, buf_instr.c_view))
             instr.variable_value = buf_instr.argval
+            instr.c_view = buf_instr.c_view
             
             previous_instr = instr
             
@@ -101,6 +104,7 @@ def main(source_code):
                 if previous_instr and previous_instr.opcode == opmap.STORE_NAME:
                     if instr_var.argval == previous_instr.argval:
                         var_value = previous_instr.variable_value
+                        var_c_view = previous_instr.c_view
                         check_type = c_types.get(instr_type.argval)
                         if not check_type:
                             print('Unknown type: {}'.format(instr_type.argval))
@@ -113,7 +117,7 @@ def main(source_code):
                         if var_value is None:
                             print('{} {};'.format(instr_type.argval, instr_var.argval))
                         else:
-                            print('{} {} = {};'.format(instr_type.argval, instr_var.argval, var_value))
+                            print('{} {} = {};'.format(instr_type.argval, instr_var.argval, var_c_view))
                     else:
                         print('{} {};'.format(instr_type.argval, instr_var.argval))
                 else:
