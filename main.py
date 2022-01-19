@@ -1,18 +1,3 @@
-"""
-Поддерживаются следующие операции:
-- присваивание переменным константных значений: целые положительные числа и строки.
-
-Ограничения:
-- типы всегда объявлять через аннотацию при инициализации.
-- все целые положительные числа по умолчанию имеют c-тип "int"
-- строки по умолчанию - тип "unsigned char"
-- аннотация типов сработает, если она укахана перед присвоением. Если указана в мемоент или после присвоения, то аннотация прогнорируется
-
-
-TODO:
- - указывать другой c-тип для целых типов, например "byte", "long"
-"""
-
 import dis
 
 def check_type_char(value):
@@ -56,19 +41,20 @@ def guess_type(value):
     return 'unknown', str(value)
 
 
-def guess_type_by_class(value):
-    if value is int:
-        return 'unsigned int'
-    elif value is str:
-        return 'char'
+#def guess_type_by_class(value):
+#    if value is int:
+#        return 'unsigned int'
+#    elif value is str:
+#        return 'char'
     
-    return 'unknown'
+#    return 'unknown'
     
 
 opmap = OpMap()
 buffer = []
 annotations = {}
 previous_instr = None
+functions = {}
 def main(source_code):
     for instr in dis.get_instructions(source_code):
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
@@ -141,18 +127,31 @@ def main(source_code):
                 print('{}[{}] = {};'.format(name, buf_instr_key.argval, buf_instr_.argval))
 
         elif instr.opcode == opmap.MAKE_FUNCTION:
-            instr_funcname = buffer.pop()
-            instr_funcobj = buffer.pop()
+            func_name = buffer.pop().argval
+            func_obj = buffer.pop().argval
+            function = buffer.pop()
             
-            print('{}() {{}};'.format(instr_funcname.argval))
+            func_annotation = function['annotations'].get('return')  # TODO: если у функции нет аннотации, то по умолчанию - "void"
+            if not func_annotation:
+                print('Function "{}" has no annotation!'.format(func_name))
+                exit()
+
+            annotations[func_name] = func_annotation
+            args = ['{} {}'.format(arg_c_type, arg_name) for arg_name, arg_c_type in function['annotations'].items() if arg_name != 'return']
+            print('{} {}({}) {{'.format(func_annotation, func_name, ', '.join(args)))
+            print('};')
 
         elif instr.opcode == opmap.BUILD_CONST_KEY_MAP:
+        
+            function = {'annotations': {}, 'default': None}
             
-            buffer.pop() # deleting ('return',) here
-            c_type_name = buffer.pop().argval
-            func_name = buffer.pop().argval
-            
-            annotations[func_name] = c_type_name
+            arg_names = list(buffer.pop().argval)
+            arg_names.reverse()
+            for arg_name in arg_names:
+                function['annotations'][arg_name] = buffer.pop().argval
+
+            function['default'] = buffer.pop().argval if buffer else tuple()
+            buffer.append(function)
         
         # Binary operations
 
@@ -284,7 +283,7 @@ var5: 'unsigned char' = 20
 def func1() -> 'void': # void func1() {};
     return None
 
-def func2() -> 'unsigned char': # unsigned char func2() {};
+def func2(arg1, arg2: 'ct1'=5, arg3: 'ct2'=8, arg4 = 10) -> 'unsigned char': # unsigned char func2() {};
     return 'c'
 
 def func3() -> 'unsigned char':
