@@ -101,6 +101,9 @@ def main(source_code):
             
             instr.variable_value = buf_instr.argval
             instr.c_view = buf_instr.c_view
+            instr.variable_opcode = buf_instr.opcode
+            instr.c_type = buf_instr.c_type
+            #instr.c_view = buf_instr.c_view
             
             previous_instr = instr
             
@@ -123,14 +126,19 @@ def main(source_code):
                     if instr_var.argval == previous_instr.argval:
                         var_value = previous_instr.variable_value
                         var_c_view = previous_instr.c_view
-                        check_type = c_types.get(instr_type.argval)
-                        if not check_type:
-                            print('Unknown type: {}'.format(instr_type.argval))
-                            exit()
+                        if previous_instr.variable_opcode == opmap.LOAD_CONST:
+                            check_type = c_types.get(instr_type.argval)
+                            if not check_type:
+                                print('Unknown type: {}'.format(instr_type.argval))
+                                exit()
                             
-                        if not (var_value is None or check_type(var_value)):
-                            print('Unmatched type {} for value {}'.format(instr_type.argval, var_value))
-                            exit()
+                            if not (var_value is None or check_type(var_value)):
+                                print('Unmatched type "{}" for value "{}"'.format(instr_type.argval, var_value))
+                                exit()
+                        else:
+                            if instr_type.argval != previous_instr.c_type:
+                                print('Unmatched type "{}" for variable "{}"'.format(instr_type.argval, None))
+                                exit()
                             
                         if var_value is None:
                             print('{} {};'.format(instr_type.argval, instr_var.argval))
@@ -179,27 +187,30 @@ def main(source_code):
         elif instr.opcode in BINARY_OPERATIONS:
         
             arg2 = buffer.pop()
-            arg1 = buffer[-1]  # ?
+            arg1 = buffer[-1]
             
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                #exit()
+            #if arg2.c_type != arg1.c_type:
+            #    print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
+            #    #exit()
                 
             val1 = arg1.argval
             val2 = arg2.argval
            
             is_matched = True
+            c_type = None
+            value = None
             if arg1.opcode == opmap.LOAD_CONST and arg2.opcode == opmap.LOAD_CONST:
                 is_matched = val1 is int and val2 is int
+                value = val1
             elif arg1.opcode == opmap.LOAD_NAME and arg2.opcode == opmap.LOAD_NAME:
-                c_type1 = annotations[val1]
+                c_type = annotations[val1]
                 c_type2 = annotations[val2]
-                is_matched = c_type1 ==  c_type2
+                is_matched = c_type == c_type2
             else:
-                any_value = arg1.argval if arg1.opcode == opmaps.LOAD_CONST else arg2.argval
-                any_name = arg1.argval if arg1.opcode == opmaps.LOAD_NAME else arg2.argval
-                any_c_type = annotations[any_name]
-                check_c_type = c_types[any_c_type]
+                any_value = arg1.argval if arg1.opcode == opmap.LOAD_CONST else arg2.argval
+                any_name = arg1.argval if arg1.opcode == opmap.LOAD_NAME else arg2.argval
+                c_type = annotations[any_name]
+                check_c_type = c_types[c_type]
                 is_matched = check_c_type(any_value)
                 
             if not is_matched:         
@@ -207,8 +218,10 @@ def main(source_code):
                  exit()
                 
             c_view = BINARY_OPERATIONS[instr.opcode]
-            arg1.c_view = '{} + {}'.format(arg1.c_view, arg2.c_view)
+            arg1.c_view = c_view.format(arg1.c_view, arg2.c_view)
             arg1.c_view = '({})'.format(arg1.c_view)
+            arg1.c_type = c_type
+            arg1.value = value
 
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
             continue
