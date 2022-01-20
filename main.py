@@ -31,6 +31,19 @@ class OpMap:
     def __getattr__(self, key):
         return dis.opmap[key]
 
+opmap = OpMap()
+
+BINARY_OPERATIONS = {
+    opmap.BINARY_OR: '{} | {}',
+    opmap.BINARY_XOR: '{} ^ {}',
+    opmap.BINARY_AND: '{} & {}',
+    opmap.BINARY_RSHIFT: '{} >> {}',
+    opmap.BINARY_LSHIFT: '{} << {}',
+    opmap.BINARY_MULTIPLY: '{} * {}',
+    opmap.BINARY_TRUE_DIVIDE: '{} / {}',
+    opmap.BINARY_SUBTRACT: '{} - {}',
+    opmap.BINARY_ADD: '{} + {}',
+}
 
 #def guess_type(value):
 #    if isinstance(value, int):
@@ -49,8 +62,6 @@ class OpMap:
     
 #    return 'unknown'
     
-
-opmap = OpMap()
 buffer = []
 annotations = {}
 previous_instr = None
@@ -60,6 +71,7 @@ def main(source_code):
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
         #print('  ', instr.opname.ljust(10), instr.argval)
         if instr.opcode == opmap.LOAD_CONST:
+            
             #instr.c_type, instr.c_view = guess_type(instr.argval)
             instr.c_type = ''
             instr.c_view = '"{}"'.format(instr.argval) if isinstance(instr.argval, str) else str(instr.argval)
@@ -67,11 +79,16 @@ def main(source_code):
             buffer.append(instr)
 
         elif instr.opcode == opmap.LOAD_NAME:
-            instr.c_type = annotations.get(instr.argval, 'unknown')
+            
+            instr.c_type = annotations.get(instr.argval)
+            if not instr.c_type and instr.argval != '__annotations__':
+                print('Variable "{}" has no annotation'.format(instr.argval))
+            
             instr.c_view = instr.argval
             buffer.append(instr)
 
         elif instr.opcode == opmap.STORE_NAME:
+            
             if not buffer:  # it's clear after MAKE_FUNCTION operator
                 continue
                 
@@ -81,6 +98,7 @@ def main(source_code):
             #else:
             if instr.argval in annotations:
                   print('{} = {};'.format(instr.argval, buf_instr.c_view))
+            
             instr.variable_value = buf_instr.argval
             instr.c_view = buf_instr.c_view
             
@@ -131,6 +149,7 @@ def main(source_code):
                 print('{}[{}] = {};'.format(name, buf_instr_key.argval, buf_instr_.argval))
 
         elif instr.opcode == opmap.MAKE_FUNCTION:
+            
             func_name = buffer.pop().argval
             func_obj = buffer.pop().argval
             function = buffer.pop()
@@ -156,107 +175,40 @@ def main(source_code):
 
             function['default'] = buffer.pop().argval if buffer else tuple()
             buffer.append(function)
-        
-        # Binary operations
 
-        elif instr.opcode == opmap.BINARY_ADD:
+        elif instr.opcode in BINARY_OPERATIONS:
         
             arg2 = buffer.pop()
-            arg1 = buffer[-1]
+            arg1 = buffer[-1]  # ?
             
             if arg2.c_type != arg1.c_type:
                 print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} + {})'.format(arg1.c_view, arg2.c_view)
-
-        elif instr.opcode == opmap.BINARY_SUBTRACT:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} - {})'.format(arg1.c_view, arg2.c_view)
-            
-        elif instr.opcode == opmap.BINARY_TRUE_DIVIDE:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} / {})'.format(arg1.c_view, arg2.c_view)
-
-        elif instr.opcode == opmap.BINARY_MULTIPLY:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} * {})'.format(arg1.c_view, arg2.c_view)
-
-        elif instr.opcode == opmap.BINARY_LSHIFT:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} << {})'.format(arg1.c_view, arg2.c_view)
-
-        elif instr.opcode == opmap.BINARY_RSHIFT:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} >> {})'.format(arg1.c_view, arg2.c_view)
-            
-        elif instr.opcode == opmap.BINARY_AND:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} & {})'.format(arg1.c_view, arg2.c_view)
-
-        elif instr.opcode == opmap.BINARY_XOR:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} ^ {})'.format(arg1.c_view, arg2.c_view)
-
-        elif instr.opcode == opmap.BINARY_OR:
-        
-            arg2 = buffer.pop()
-            arg1 = buffer[-1]
-            
-            if arg2.c_type != arg1.c_type:
-                print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-                exit()
-               
-            arg1.c_view = '({} | {})'.format(arg1.c_view, arg2.c_view)
+                #exit()
+                
+            val1 = arg1.argval
+            val2 = arg2.argval
+           
+            is_matched = True
+            if arg1.opcode == opmap.LOAD_CONST and arg2.opcode == opmap.LOAD_CONST:
+                is_matched = val1 is int and val2 is int
+            elif arg1.opcode == opmap.LOAD_NAME and arg2.opcode == opmap.LOAD_NAME:
+                c_type1 = annotations[val1]
+                c_type2 = annotations[val2]
+                is_matched = c_type1 ==  c_type2
+            else:
+                any_value = arg1.argval if arg1.opcode == opmaps.LOAD_CONST else arg2.argval
+                any_name = arg1.argval if arg1.opcode == opmaps.LOAD_NAME else arg2.argval
+                any_c_type = annotations[any_name]
+                check_c_type = c_types[any_c_type]
+                is_matched = check_c_type(any_value)
+                
+            if not is_matched:         
+                 print('Types are not compatible for value: "{}" and "{}"'.format(val1, val2))
+                 exit()
+                
+            c_view = BINARY_OPERATIONS[instr.opcode]
+            arg1.c_view = '{} + {}'.format(arg1.c_view, arg2.c_view)
+            arg1.c_view = '({})'.format(arg1.c_view)
 
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
             continue
