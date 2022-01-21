@@ -1,19 +1,25 @@
 import dis
 
+
 def check_type_char(value):
     return isinstance(value, int) and -128 <= value <= 127
+
 
 def check_type_unsigned_char(value):
     return (isinstance(value, int) and 0 <= value <= 255) or (isinstance(value, str) and len(value) == 1 and bytes(value, 'ascii')[0] <= 255)
 
+
 def check_type_int(value):
     return isinstance(value, int) and -32768 <= value <= 32767
+
 
 def check_type_unsigned_int(value):
     return isinstance(value, int) and 0 <= value <= 65535
 
+
 def check_type_long_int(value):
     return isinstance(value, int) and 0 <= value <= 0
+
 
 def check_type_void(value):
     return value is None
@@ -27,12 +33,13 @@ c_types = {
     'void': check_type_void,
 }
 
+
 class OpMap:
     def __getattr__(self, key):
         return dis.opmap[key]
 
-opmap = OpMap()
 
+opmap = OpMap()
 BINARY_OPERATIONS = {
     opmap.BINARY_OR: '{} | {}',
     opmap.BINARY_XOR: '{} ^ {}',
@@ -44,47 +51,52 @@ BINARY_OPERATIONS = {
     opmap.BINARY_SUBTRACT: '{} - {}',
     opmap.BINARY_ADD: '{} + {}',
 }
-
-#def guess_type(value):
-#    if isinstance(value, int):
-#        return 'unsigned int', str(value)
-#    elif isinstance(value, str):
-#        return 'char', '"{}"'.format(value)
-    
-#    return 'unknown', str(value)
-
-
-#def guess_type_by_class(value):
-#    if value is int:
-#        return 'unsigned int'
-#    elif value is str:
-#        return 'char'
-    
-#    return 'unknown'
-    
 buffer = []
 annotations = {}
 previous_instr = None
 functions = {}
-def main(source_code):
-    for instr in dis.get_instructions(source_code):
-        # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
-        #print('  ', instr.opname.ljust(10), instr.argval)
-        if instr.opcode == opmap.LOAD_CONST:
+
+def get_c_view_value(value):
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, str):
+        return '"{}"'.format(value)
+
+def get_c_view_name(name):
+    c_type = annotations.get(name)
+    if not c_type and name != '__annotations__':
+        print('Variable "{}" has no annotation'.format(name))
+    
+    return name
+
+def get_c_view(instr):
+    if instr.opcode == opmap.LOAD_CONST:
+        return  get_c_view_value(instr.argval)
+    elif instr.opcode == opmap.LOAD_NAME:
+        return get_c_view_name(instr.argval)
+    #elif instr.opcode == opmap.CALL_FUNCTION:
+    #    return '{}()'.format(instr.argval)
             
-            #instr.c_type, instr.c_view = guess_type(instr.argval)
+    print('unknown python-type')
+    exit()
+
+def main(source_code):
+    for index, instr in enumerate(dis.get_instructions(source_code)):
+        # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
+        print('  ', index, instr.opname.ljust(10), instr.argval)
+        if instr.opcode == opmap.LOAD_CONST:
+
             instr.c_type = ''
-            instr.c_view = '"{}"'.format(instr.argval) if isinstance(instr.argval, str) else str(instr.argval)
-            #instr.source_value = instr.argval
+            instr.c_view = get_c_view_value(instr.argval)
             buffer.append(instr)
 
         elif instr.opcode == opmap.LOAD_NAME:
             
             instr.c_type = annotations.get(instr.argval)
-            if not instr.c_type and instr.argval != '__annotations__':
-                print('Variable "{}" has no annotation'.format(instr.argval))
+            #if not instr.c_type and instr.argval != '__annotations__':
+            #    print('Variable "{}" has no annotation'.format(instr.argval))
             
-            instr.c_view = instr.argval
+            instr.c_view = get_c_view_name(instr.argval)
             buffer.append(instr)
 
         elif instr.opcode == opmap.STORE_NAME:
@@ -93,9 +105,6 @@ def main(source_code):
                 continue
                 
             buf_instr = buffer.pop()
-            #if buf_instr.c_type == 'char' and len(buf_instr.source_value) > 1:
-            #    print('{} {}[{}] = "{}";'.format(buf_instr.c_type, instr.argval, len(buf_instr.source_value), buf_instr.source_value))
-            #else:
             if instr.argval in annotations:
                   print('{} = {};'.format(instr.argval, buf_instr.c_view))
             
@@ -223,6 +232,25 @@ def main(source_code):
             arg1.c_type = c_type
             arg1.value = value
 
+        elif instr.opcode == opmap.CALL_FUNCTION:
+            
+            buff_instr = buffer[-1]
+            buff_instr.c_view = '{}()'.format(buff_instr.c_view)
+
+        elif instr.opcode == opmap.COMPARE_OP:
+
+            instr_arg1 = buffer.pop()
+            instr_arg2 = buffer[-1]
+            
+            c_view1 = get_c_view(instr_arg1)
+            c_view2 = get_c_view(instr_arg2)
+            
+            print('{} {} {}'.format(c_view2, instr.argval, c_view1))
+
+        elif instr.opcode == opmap.POP_JUMP_IF_FALSE:
+            
+            pass
+
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
             continue
         else:
@@ -233,12 +261,6 @@ def main(source_code):
         #elif instr.opcode == opmap.BINARY_MATRIX_MULTIPLY: # TODO: '@'
         #elif instr.opcode == opmap.BINARY_POWER: # TODO: '**'
         #elif instr.opcode == opmap.BINARY_SUBSCR: # TODO: 'TOS = TOS1[TOS]'
-        #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
-        #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
-        #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
-        #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
-        #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
-        #elif instr.opcode == opmap.BINARY_MODULO: # TODO: '%'
 
 
 if __name__ == '__main__':
@@ -258,7 +280,7 @@ def func2(arg1, arg2: 'ct1'=5, arg3: 'ct2'=8, arg4 = 10) -> 'unsigned char': # u
 def func3() -> 'unsigned char':
     return 'c', 6
 
-var5 = func2()
+var5 = func2() + 67 + var4
 
 #a = 10
 #b: int = 25
@@ -275,5 +297,7 @@ cbf2 = cbf | 34
 cbf2 = cbf or 34
 cd = 'g'
 cd = 6
+if cd == 7:
+    cbf = 15
 """
     main(source_code)
