@@ -109,17 +109,32 @@ def get_c_view_name(name):
 
 class Stack:
     ident_level = 0
+    bytes_when_level_decrement = []
     
-    def __init__(self, ident_level):
+    def __init__(self, ident_level=0):
         self.ident_level = ident_level
     
     def print_c_code(self, line, *args):
         print('  '*self.ident_level, line.format(*args), sep='')
 
+    def more_ident(self, byte):
+        self.print_c_code('{{')
+        self.bytes_when_level_decrement.append(byte)
+        self.ident_level += 1
         
-def main(source_code, ident_level=0, call_level=0):
-    stack = Stack(ident_level)
+    def check_ident(self, offset):
+        if self.bytes_when_level_decrement:
+            if self.bytes_when_level_decrement[-1] == offset:
+                self.ident_level -= 1
+                self.print_c_code('}}')
+                
+    
+    
+        
+def main(source_code, stack=None, call_level=0):
+    stack = Stack() if stack is None else stack
     for index, instr in enumerate(dis.get_instructions(source_code)):
+        stack.check_ident(instr.offset)
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
         print('  ', index, instr.opname.ljust(10), instr.argval)
         if instr.opcode == opmap.LOAD_CONST:
@@ -127,7 +142,7 @@ def main(source_code, ident_level=0, call_level=0):
             instr.c_view = get_c_view_value(instr.argval)
             buffer.append(instr)
 
-        elif instr.opcode == opmap.LOAD_NAME: 
+        elif instr.opcode in (opmap.LOAD_NAME, opmap.LOAD_FAST): 
         
             instr.c_view = get_c_view_name(instr.argval)
             buffer.append(instr)
@@ -138,7 +153,7 @@ def main(source_code, ident_level=0, call_level=0):
                 continue
                 
             buf_instr = buffer.pop()
-            if instr.argval in annotations:  # if variable exists and we do assigning
+            if instr.argval in annotations or call_level > 0:  # if variable exists and we do assigning or we are inside in function
                 stack.print_c_code('{} = {};', instr.argval, buf_instr.c_view)
 
             instr.variable_value = buf_instr.argval
@@ -188,8 +203,10 @@ def main(source_code, ident_level=0, call_level=0):
 
             annotations[func_name] = func_annotation
             args = ['{} {}'.format(arg_c_type, arg_name) for arg_name, arg_c_type in function['annotations'].items() if arg_name != 'return']
-            stack.print_c_code('{} {}({}) {{', func_annotation, func_name, ', '.join(args))
-            main(func_obj, ident_level+1, call_level+1)
+            stack.print_c_code('\n{} {}({}) {{', func_annotation, func_name, ', '.join(args))
+            stack.ident_level += 1
+            main(func_obj, stack, call_level+1)
+            stack.ident_level -= 1
             stack.print_c_code('}};')
 
         elif instr.opcode == opmap.BUILD_CONST_KEY_MAP:
@@ -267,9 +284,8 @@ def main(source_code, ident_level=0, call_level=0):
         
             buff_instr = buffer.pop()
             
-            stack.print_c_code('if ({}) {{', buff_instr.c_view)
-            stack.ident_level += 1
-            #print_c_code('}};')
+            stack.print_c_code('\nif ({})', buff_instr.c_view)
+            stack.more_ident(instr.argval)
 
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
             continue
@@ -299,6 +315,8 @@ def func2(arg1, arg2: 'ct1'=5, arg3: 'ct2'=8, arg4 = 10) -> 'unsigned char': # u
 
 def func3() -> 'unsigned char':
     fvar: 'unsigned int' = 78
+    if fvar > 9:
+        return 56
     return 'c', 6
 
 var5 = func2() + 67 + var4
