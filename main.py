@@ -33,6 +33,31 @@ c_types = {
     'void': check_type_void,
 }
 
+def is_variable_exists(variable_name):
+    ctype = annotations.get(variable_name)
+    if not ctype:
+        print('Variable {} does not exists'.format(variable_name))
+        exit()
+    
+    return ctype
+
+def is_value_matched_type(value, ctype):
+    checking_function = c_types.get(ctype)
+    if not checking_function:
+        print('Unknown type: {}'.format(ctype))
+        exit()
+    
+    if value is not None and not checking_function(value):
+        print('Unmatched type "{}" for value "{}"'.format(ctype, value))
+        exit()
+
+def are_types_matched(ctype1, ctype2):
+    if ctype1 != ctype2:
+        #print('Unmatched type "{}" for variable "{}"'.format(type1, variable_name))
+        print('Unmatched types: "{}" and "{}"'.format(ctype1, ctype2))
+        exit()
+
+
 
 class OpMap:
     def __getattr__(self, key):
@@ -62,16 +87,17 @@ def get_c_view_value(value):
     elif isinstance(value, str):
         return '"{}"'.format(value)
 
-def get_c_view_name(name):
-    c_type = annotations.get(name)
-    if not c_type and name != '__annotations__':
-        print('Variable "{}" has no annotation'.format(name))
-    
+
+def get_c_view_name(name):    
     return name
 
-def get_c_view(instr):
+
+'''def get_c_view(instr):
+    if hasattr(instr, 'c_view'):
+        return instr.c_view
+
     if instr.opcode == opmap.LOAD_CONST:
-        return  get_c_view_value(instr.argval)
+        return get_c_view_value(instr.argval)
     elif instr.opcode == opmap.LOAD_NAME:
         return get_c_view_name(instr.argval)
     #elif instr.opcode == opmap.CALL_FUNCTION:
@@ -79,23 +105,24 @@ def get_c_view(instr):
             
     print('unknown python-type')
     exit()
+'''
+
+level = 0
+def print_c_code(line, *args):
+    print('  '*level, line.format(*args), sep='')
 
 def main(source_code):
+    global level
     for index, instr in enumerate(dis.get_instructions(source_code)):
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
         print('  ', index, instr.opname.ljust(10), instr.argval)
         if instr.opcode == opmap.LOAD_CONST:
 
-            instr.c_type = ''
             instr.c_view = get_c_view_value(instr.argval)
             buffer.append(instr)
 
-        elif instr.opcode == opmap.LOAD_NAME:
-            
-            instr.c_type = annotations.get(instr.argval)
-            #if not instr.c_type and instr.argval != '__annotations__':
-            #    print('Variable "{}" has no annotation'.format(instr.argval))
-            
+        elif instr.opcode == opmap.LOAD_NAME: 
+        
             instr.c_view = get_c_view_name(instr.argval)
             buffer.append(instr)
 
@@ -105,22 +132,13 @@ def main(source_code):
                 continue
                 
             buf_instr = buffer.pop()
-            if instr.argval in annotations:
-                  print('{} = {};'.format(instr.argval, buf_instr.c_view))
-            
+            if instr.argval in annotations:  # if variable exists and we do assigning
+                print_c_code('{} = {};', instr.argval, buf_instr.c_view)
+
             instr.variable_value = buf_instr.argval
             instr.c_view = buf_instr.c_view
             instr.variable_opcode = buf_instr.opcode
-            instr.c_type = buf_instr.c_type
-            #instr.c_view = buf_instr.c_view
-            
             previous_instr = instr
-            
-            #source_type = annotations.setdefault(instr.argval, buf_instr.c_type)
-            #if source_type != buf_instr.c_type:
-            #    print('TypeError: var "{}" has type "{}", but has got type "{}"'.format(instr.argval, source_type, buf_instr.c_type))
-            #    print('Line is', buf_instr.starts_line)
-            #    exit()
 
         elif instr.opcode == opmap.STORE_SUBSCR:
         
@@ -129,41 +147,27 @@ def main(source_code):
             buf_instr_value = buffer.pop()
 
             if name == '__annotations__':
-                instr_var = buf_instr_key
-                instr_type = buf_instr_value
-                if previous_instr and previous_instr.opcode == opmap.STORE_NAME:
-                    if instr_var.argval == previous_instr.argval:
-                        var_value = previous_instr.variable_value
-                        var_c_view = previous_instr.c_view
+                variable_ctype = buf_instr_value.argval
+                variable_name = buf_instr_key.argval
+                if previous_instr:
+                    if variable_name == previous_instr.argval:
+                        variable_value = previous_instr.variable_value
                         if previous_instr.variable_opcode == opmap.LOAD_CONST:
-                            check_type = c_types.get(instr_type.argval)
-                            if not check_type:
-                                print('Unknown type: {}'.format(instr_type.argval))
-                                exit()
+                            is_value_matched_type(variable_value, variable_ctype)
                             
-                            if not (var_value is None or check_type(var_value)):
-                                print('Unmatched type "{}" for value "{}"'.format(instr_type.argval, var_value))
-                                exit()
+                        if variable_value is None:
+                            print_c_code('{} {};', variable_ctype, variable_name)
                         else:
-                            if instr_type.argval != previous_instr.c_type:
-                                print('Unmatched type "{}" for variable "{}"'.format(instr_type.argval, None))
-                                exit()
-                            
-                        if var_value is None:
-                            print('{} {};'.format(instr_type.argval, instr_var.argval))
-                        else:
-                            print('{} {} = {};'.format(instr_type.argval, instr_var.argval, var_c_view))
+                            print_c_code('{} {} = {};', variable_ctype, variable_name, previous_instr.c_view)
                     else:
-                        print('{} {};'.format(instr_type.argval, instr_var.argval))
-                else:
-                    print('{} {};'.format(instr_type.argval, instr_var.argval))
-                    
-                annotations[instr_var.argval] = instr_type.argval
-                #if buf_instr_key.argval not in annotations:
-                #    c_type = guess_type_by_class(getattr(__builtins__, buf_instr_value.argval))
-                #    print('{} {};'.format(c_type, buf_instr_key.argval))
+                        print_c_code('{} {};', variable_ctype, variable_name)
+                else:  # if the variable was created without value
+                    print_c_code('{} {};', variable_ctype, variable_name)
+                
+                previous_instr = None
+                annotations[variable_name] = variable_ctype
             else:
-                print('{}[{}] = {};'.format(name, buf_instr_key.argval, buf_instr_.argval))
+                print_c_code('{}[{}] = {};', name, buf_instr_key.argval, buf_instr_.argval)
 
         elif instr.opcode == opmap.MAKE_FUNCTION:
             
@@ -178,8 +182,8 @@ def main(source_code):
 
             annotations[func_name] = func_annotation
             args = ['{} {}'.format(arg_c_type, arg_name) for arg_name, arg_c_type in function['annotations'].items() if arg_name != 'return']
-            print('{} {}({}) {{'.format(func_annotation, func_name, ', '.join(args)))
-            print('};')
+            print_c_code('{} {}({}) {{', func_annotation, func_name, ', '.join(args))
+            print_c_code('}};')
 
         elif instr.opcode == opmap.BUILD_CONST_KEY_MAP:
         
@@ -197,10 +201,6 @@ def main(source_code):
         
             arg2 = buffer.pop()
             arg1 = buffer[-1]
-            
-            #if arg2.c_type != arg1.c_type:
-            #    print('Types are not equal for binary operation! ({} and {})'.format(arg2.c_type, arg1.c_type))
-            #    #exit()
                 
             val1 = arg1.argval
             val2 = arg2.argval
@@ -212,15 +212,14 @@ def main(source_code):
                 is_matched = val1 is int and val2 is int
                 value = val1
             elif arg1.opcode == opmap.LOAD_NAME and arg2.opcode == opmap.LOAD_NAME:
-                c_type = annotations[val1]
-                c_type2 = annotations[val2]
-                is_matched = c_type == c_type2
+                c_type = is_variable_exists(val1)
+                c_type2 = is_variable_exists(val2)
+                are_types_matched(c_type, c_type2)
             else:
                 any_value = arg1.argval if arg1.opcode == opmap.LOAD_CONST else arg2.argval
                 any_name = arg1.argval if arg1.opcode == opmap.LOAD_NAME else arg2.argval
-                c_type = annotations[any_name]
-                check_c_type = c_types[c_type]
-                is_matched = check_c_type(any_value)
+                c_type = is_variable_exists(any_name)
+                is_value_matched_type(any_value, c_type)
                 
             if not is_matched:         
                  print('Types are not compatible for value: "{}" and "{}"'.format(val1, val2))
@@ -229,7 +228,6 @@ def main(source_code):
             c_view = BINARY_OPERATIONS[instr.opcode]
             arg1.c_view = c_view.format(arg1.c_view, arg2.c_view)
             arg1.c_view = '({})'.format(arg1.c_view)
-            arg1.c_type = c_type
             arg1.value = value
 
         elif instr.opcode == opmap.CALL_FUNCTION:
@@ -242,14 +240,20 @@ def main(source_code):
             instr_arg1 = buffer.pop()
             instr_arg2 = buffer[-1]
             
-            c_view1 = get_c_view(instr_arg1)
-            c_view2 = get_c_view(instr_arg2)
+            c_view1 = instr_arg1.c_view
+            c_view2 = instr_arg2.c_view
             
-            print('{} {} {}'.format(c_view2, instr.argval, c_view1))
+            c_view_compare = '{} {} {}'.format(c_view2, instr.argval, c_view1)
+            instr_arg2.c_view = c_view_compare            
+            #print(c_view_compare)
 
         elif instr.opcode == opmap.POP_JUMP_IF_FALSE:
+        
+            buff_instr = buffer.pop()
             
-            pass
+            print_c_code('if ({}) {{', buff_instr.c_view)
+            level += 1
+            #print_c_code('}};')
 
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
             continue
@@ -297,6 +301,7 @@ cbf2 = cbf | 34
 cbf2 = cbf or 34
 cd = 'g'
 cd = 6
+ab: 'unsigned int' = cd == 7  # бесполезный код. Если такая переменная используется в условии, то её следует заменить на смао выражение
 if cd == 7:
     cbf = 15
 """
