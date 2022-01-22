@@ -107,12 +107,18 @@ def get_c_view_name(name):
     exit()
 '''
 
-level = 0
-def print_c_code(line, *args):
-    print('  '*level, line.format(*args), sep='')
+class Stack:
+    ident_level = 0
+    
+    def __init__(self, ident_level):
+        self.ident_level = ident_level
+    
+    def print_c_code(self, line, *args):
+        print('  '*self.ident_level, line.format(*args), sep='')
 
-def main(source_code):
-    global level
+        
+def main(source_code, ident_level=0, call_level=0):
+    stack = Stack(ident_level)
     for index, instr in enumerate(dis.get_instructions(source_code)):
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
         print('  ', index, instr.opname.ljust(10), instr.argval)
@@ -126,14 +132,14 @@ def main(source_code):
             instr.c_view = get_c_view_name(instr.argval)
             buffer.append(instr)
 
-        elif instr.opcode == opmap.STORE_NAME:
+        elif instr.opcode in (opmap.STORE_NAME, opmap.STORE_FAST):
             
             if not buffer:  # it's clear after MAKE_FUNCTION operator
                 continue
                 
             buf_instr = buffer.pop()
             if instr.argval in annotations:  # if variable exists and we do assigning
-                print_c_code('{} = {};', instr.argval, buf_instr.c_view)
+                stack.print_c_code('{} = {};', instr.argval, buf_instr.c_view)
 
             instr.variable_value = buf_instr.argval
             instr.c_view = buf_instr.c_view
@@ -156,18 +162,18 @@ def main(source_code):
                             is_value_matched_type(variable_value, variable_ctype)
                             
                         if variable_value is None:
-                            print_c_code('{} {};', variable_ctype, variable_name)
+                            stack.print_c_code('{} {};', variable_ctype, variable_name)
                         else:
-                            print_c_code('{} {} = {};', variable_ctype, variable_name, previous_instr.c_view)
+                            stack.print_c_code('{} {} = {};', variable_ctype, variable_name, previous_instr.c_view)
                     else:
-                        print_c_code('{} {};', variable_ctype, variable_name)
+                        stack.print_c_code('{} {};', variable_ctype, variable_name)
                 else:  # if the variable was created without value
-                    print_c_code('{} {};', variable_ctype, variable_name)
+                    stack.print_c_code('{} {};', variable_ctype, variable_name)
                 
                 previous_instr = None
                 annotations[variable_name] = variable_ctype
             else:
-                print_c_code('{}[{}] = {};', name, buf_instr_key.argval, buf_instr_.argval)
+                stack.print_c_code('{}[{}] = {};', name, buf_instr_key.argval, buf_instr_.argval)
 
         elif instr.opcode == opmap.MAKE_FUNCTION:
             
@@ -182,8 +188,9 @@ def main(source_code):
 
             annotations[func_name] = func_annotation
             args = ['{} {}'.format(arg_c_type, arg_name) for arg_name, arg_c_type in function['annotations'].items() if arg_name != 'return']
-            print_c_code('{} {}({}) {{', func_annotation, func_name, ', '.join(args))
-            print_c_code('}};')
+            stack.print_c_code('{} {}({}) {{', func_annotation, func_name, ', '.join(args))
+            main(func_obj, ident_level+1, call_level+1)
+            stack.print_c_code('}};')
 
         elif instr.opcode == opmap.BUILD_CONST_KEY_MAP:
         
@@ -196,6 +203,15 @@ def main(source_code):
 
             function['default'] = buffer.pop().argval if buffer else tuple()
             buffer.append(function)
+
+        elif instr.opcode == opmap.RETURN_VALUE:
+                    
+            buff_instr = buffer.pop()
+            if call_level > 0:
+                if buff_instr.argval is not None:
+                    stack.print_c_code('return {};', buff_instr.c_view)
+                else:
+                    stack.print_c_code('return;')
 
         elif instr.opcode in BINARY_OPERATIONS:
         
@@ -251,8 +267,8 @@ def main(source_code):
         
             buff_instr = buffer.pop()
             
-            print_c_code('if ({}) {{', buff_instr.c_view)
-            level += 1
+            stack.print_c_code('if ({}) {{', buff_instr.c_view)
+            stack.ident_level += 1
             #print_c_code('}};')
 
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
@@ -282,6 +298,7 @@ def func2(arg1, arg2: 'ct1'=5, arg3: 'ct2'=8, arg4 = 10) -> 'unsigned char': # u
     return 'c'
 
 def func3() -> 'unsigned char':
+    fvar: 'unsigned int' = 78
     return 'c', 6
 
 var5 = func2() + 67 + var4
@@ -298,7 +315,7 @@ cbf2 = cbf - 34
 cbf2 = cbf * 34
 cbf2 = cbf / 34
 cbf2 = cbf | 34
-cbf2 = cbf or 34
+cbf2 = cbf or 34  # нужен ли данный код?
 cd = 'g'
 cd = 6
 ab: 'unsigned int' = cd == 7  # бесполезный код. Если такая переменная используется в условии, то её следует заменить на смао выражение
