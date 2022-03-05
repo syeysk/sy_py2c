@@ -111,11 +111,14 @@ class Stack:
     ident_level = 0
     bytes_when_level_decrement = []
     
-    def __init__(self, ident_level=0):
+    def __init__(self, save_to, ident_level=0):
         self.ident_level = ident_level
+        self.save_to = save_to
     
     def print_c_code(self, line, *args):
-        print('  '*self.ident_level, line.format(*args), sep='')
+        self.save_to.write('  '*self.ident_level)
+        self.save_to.write(line.format(*args))
+        self.save_to.write('\n')
 
     def more_ident(self, byte):
         self.print_c_code('{{')
@@ -131,8 +134,8 @@ class Stack:
     
     
         
-def main(source_code, stack=None, call_level=0):
-    stack = Stack() if stack is None else stack
+def main(source_code, save_to=print, stack=None, call_level=0):
+    stack = Stack(save_to) if stack is None else stack
     for index, instr in enumerate(dis.get_instructions(source_code)):
         stack.check_ident(instr.offset)
         # print('  ', instr.opcode, instr.opname, instr.arg, instr.argval, instr.starts_line)
@@ -205,7 +208,7 @@ def main(source_code, stack=None, call_level=0):
             args = ['{} {}'.format(arg_c_type, arg_name) for arg_name, arg_c_type in function['annotations'].items() if arg_name != 'return']
             stack.print_c_code('\n{} {}({}) {{', func_annotation, func_name, ', '.join(args))
             stack.ident_level += 1
-            main(func_obj, stack, call_level+1)
+            main(func_obj, save_to, stack, call_level+1)
             stack.ident_level -= 1
             stack.print_c_code('}};')
 
@@ -284,7 +287,7 @@ def main(source_code, stack=None, call_level=0):
         
             buff_instr = buffer.pop()
             
-            stack.print_c_code('\nif ({})', buff_instr.c_view)
+            stack.print_c_code('if ({})', buff_instr.c_view)
             stack.more_ident(instr.argval)
 
         elif instr.opcode == opmap.SETUP_ANNOTATIONS:
@@ -340,4 +343,5 @@ ab: 'unsigned int' = cd == 7  # бесполезный код. Если така
 if cd == 7:
     cbf = 15
 """
-    main(source_code)
+    with open('example.c', 'w') as example_c_file:
+        main(source_code, save_to=example_c_file)
