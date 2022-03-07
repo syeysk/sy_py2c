@@ -1,4 +1,5 @@
 # tool_py2c_translator
+
 Translator Python source into C.
 
 Поддерживаются следующие операции:
@@ -12,3 +13,30 @@ Translator Python source into C.
 
 - все целые положительные числа по умолчанию имеют c-тип "int"
 - строки по умолчанию - тип "unsigned char"
+
+# ROADMAP
+
+## Tests
+- [ ] tests of variables and operators
+- [ ] tests of constructions
+- [ ] tests of functions
+- [ ] tests of simple programs with different features
+
+## Standarts of C
+
+About standarts:
+- http://www.open-std.org/jtc1/sc22/wg14/
+- 
+
+- [ ] K&R C
+- [ ] C89
+- [ ] C90
+- [ ] C95
+- [ ] C99
+- [ ] C11
+- [ ] C17
+- [ ] C2x
+
+## Versions of Python
+
+Not yet
