@@ -103,7 +103,7 @@ def convert_annotation(node):
     exit()
 
 
-def walk(parent_node, save_to, level=0, has_while_orelse=None):
+def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
     if parent_node is None:
         save_to.write('None')
         return
@@ -112,7 +112,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None):
         has_while_orelse = []
 
     for node in chain([parent_node], ast.iter_child_nodes(parent_node)):
-        if hasattr(node, 'custom_ignore'):
+        if hasattr(node, 'custom_ignore') and node.custom_ignore:
             continue
             
         node.custom_ignore = True
@@ -128,8 +128,14 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None):
             save_to.write(';\n')
 
         elif isinstance(node, ast.Assign):
-            save_to.write('    '*level)
+            if isinstance(node.value, ast.IfExp):
+                data = {'target': node.targets[0], 'value': None}
+                walk(node.value, save_to, level, for_ifexpr=data)
+                data['target'].custom_ignore = False
+                node.value = data['value']
+
             for target in node.targets:
+                save_to.write('    ' * level)
                 walk(target, save_to, level)
                 save_to.write(' = ')
                 walk(node.value, save_to, level)
@@ -214,20 +220,43 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None):
                 save_to.write(';\n')
 
         elif isinstance(node, ast.IfExp):
+            target = ast.AnnAssign(
+                target=ast.Name(id='success', ctx=ast.Store),
+                annotation=ast.Name(id='unsigned int', ctx=ast.Load),
+                value=None,
+            )
+            walk(target, save_to, level)
+
             save_to.write('    ' * level)
             save_to.write('if (')
             walk(node.test, save_to)
             save_to.write(') {\n')
             save_to.write('    ' * (level+1))
-            walk(node.body, save_to)
-            save_to.write(';\n')
+            # if for_ifexpr:
+            #     walk(for_ifexpr, save_to)
+
+            target = ast.Assign(
+                targets=[ast.Name(id='success', ctx=ast.Store)],
+                value=node.body,
+            )
+            walk(target, save_to)
+            # save_to.write(';\n')
             save_to.write('    ' * level)
             save_to.write('} else {\n')
             save_to.write('    ' * (level+1))
-            walk(node.orelse, save_to)
-            save_to.write(';\n')
+            # if for_ifexpr:
+            #     for_ifexpr.custom_ignore = False
+            #     walk(for_ifexpr, save_to)
+
+            target = ast.Assign(
+                targets=[ast.Name(id='success', ctx=ast.Store)],
+                value=node.orelse,
+            )
+            walk(target, save_to)
+            # save_to.write(';\n')
             save_to.write('    ' * level)
-            save_to.write('};\n')
+            save_to.write('}\n\n')
+            for_ifexpr['value'] = ast.Name(id='success', ctx=ast.Load)
 
         elif isinstance(node, ast.If):
             save_to.write('    '*level)
@@ -302,9 +331,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None):
             save_to.write('\n')
 
         elif isinstance(node, ast.ImportFrom):
-            for name in node.names:
-                save_to.write(f'#include <{name.name}.h>\n')
-
+            save_to.write(f'#include <{node.module}.h>\n')
             save_to.write('\n')
 
         elif isinstance(node, ast.Compare):
