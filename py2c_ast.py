@@ -138,6 +138,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
                 save_to.write('    ' * level)
                 walk(target, save_to, level)
                 save_to.write(' = ')
+                node.value.custom_ignore = False
                 walk(node.value, save_to, level)
                 save_to.write(';\n')
 
@@ -321,7 +322,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
             walk(node.value, save_to, level)
             save_to.write(';\n')
 
-        elif isinstance(node, ast.Pass):
+        elif isinstance(node, (ast.Pass, ast.Module)):
             pass
 
         elif isinstance(node, ast.Import):

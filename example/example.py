@@ -79,3 +79,5 @@ else:
 cd += 1
 cd -= 1
 cd = -cd
+
+cd = counter = useless_action = 234
