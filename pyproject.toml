@@ -1,0 +1,12 @@
+[project]
+name = "py2c"
+description = "Python into C translator"
+version = "0.1.0"
+authors = [
+    { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
+]
+dependencies = [
+]
+
+[build-system]
+requires = ["Python>3.4"]
