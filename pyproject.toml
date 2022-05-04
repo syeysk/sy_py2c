@@ -9,4 +9,4 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["python^3.4"]
+requires = ["python>=3.4"]
