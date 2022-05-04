@@ -9,4 +9,4 @@ dependencies = [
 ]
 
 [build-system]
-requires = []
+requires = ["setuptools"]
