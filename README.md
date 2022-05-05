@@ -40,3 +40,7 @@ About standarts:
 ## Versions of Python
 
 Not yet
+
+## Links
+
+- description of nodes: https://greentreesnakes.readthedocs.io/en/latest/nodes.html
