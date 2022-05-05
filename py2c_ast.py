@@ -1,3 +1,7 @@
+"""
+1.  ast.Num, ast.Str - for Python < 3.8. ast.Num.n = ast.Constant.value
+"""
+
 import ast
 from itertools import chain
 
@@ -85,22 +89,24 @@ def convert_unary_op(node):
 
 
 def is_constant_none(node):
-    return isinstance(node, ast.Constant) and node.value is None
+    return isinstance(node, (ast.Constant, ast.Num, ast.Str)) and node.value is None
 
 
 def convert_annotation(node):
     if node is None:
-        print('annotation must be!')
-        exit()
-        
+        raise Exception('annotation must be!')
+
     node.custom_ignore = True        
     if isinstance(node, ast.Name):
         return node.id
     elif isinstance(node, ast.Constant):
         return node.value
-    
-    print(node, 'unknown annotation node')
-    exit()
+    elif isinstance(node, ast.Num):
+        return node.n
+    elif isinstance(node, ast.Str):
+        return node.s
+
+    raise Exception('unknown annotation node: {}'.format(str(node)))
 
 
 def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
@@ -179,16 +185,16 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
             
             save_to.write(')')
 
-        elif isinstance(node, ast.Constant):
-            value = node.value
+        elif isinstance(node, (ast.Constant, ast.Num, ast.Str)):
+            value = node.value if isinstance(node, ast.Constant) else (node.n if isinstance(node, ast.Num) else node.s)
             if value is None:
                 save_to.write('NULL')  # для указателей
             elif isinstance(value, str):
-                save_to.write('"{}"'.format(node.value))
+                save_to.write('"{}"'.format(value))
             elif isinstance(value, bool):
-                save_to.write('{}'.format(1 if node.value else 0))
+                save_to.write('{}'.format(1 if value else 0))
             elif isinstance(value, (int, float)):
-                save_to.write('{}'.format(node.value))
+                save_to.write('{}'.format(value))
 
         elif isinstance(node, ast.Name):
             save_to.write('{}'.format(node.id))
