@@ -6,6 +6,19 @@ import ast
 from itertools import chain
 
 
+class SourceCodeException(Exception):
+    def __repr__(self):
+        message, node = self.args
+        lineno = node.lineno if hasattr(node, 'lineno') else None
+        col_offset = node.col_offset if hasattr(node, 'col_offset') else '-'
+        name = node.name if hasattr(node, 'name') else '-'
+        return f'{message}! Line: {lineno}/{col_offset} Name: {name}'
+
+
+class TranslateAlgorythmException(Exception):
+    pass
+
+
 def convert_op(node):
     node.custom_ignore = True
     if isinstance(node, ast.Add):
@@ -35,7 +48,7 @@ def convert_op(node):
     #elif isinstance(node, ast.MatMult):
     #    return ''
     else:
-        print(node, 'unknown node operator')
+        raise SourceCodeException('unknown node operator', node)
 
 
 def convert_compare_op(node):
@@ -61,7 +74,7 @@ def convert_compare_op(node):
     #elif isinstance(node, ast.NotIn):
     #    return ''
     else:
-        print(node, 'unknown node compare operator')
+        raise SourceCodeException('unknown node compare operator', node)
 
 
 def convert_bool_op(node):
@@ -71,7 +84,7 @@ def convert_bool_op(node):
     elif isinstance(node, ast.And):
         return '&&'
     else:
-        print(node, 'unknown node bool operator')
+        raise SourceCodeException('unknown node bool operator', node)
 
 
 def convert_unary_op(node):
@@ -85,18 +98,18 @@ def convert_unary_op(node):
     elif isinstance(node, ast.Invert):
         return '~'
     else:
-        print(node, 'unknown node unary operator')
+        raise SourceCodeException('unknown node unary operator', node)
 
 
 def is_constant_none(node):
     return isinstance(node, (ast.Constant, ast.Num, ast.Str)) and node.value is None
 
 
-def convert_annotation(node):
+def convert_annotation(node, parent_node):
     if node is None:
-        raise Exception('annotation must be!')
+        raise SourceCodeException('annotation must be!', parent_node)
 
-    node.custom_ignore = True        
+    node.custom_ignore = True
     if isinstance(node, ast.Name):
         return node.id
     elif isinstance(node, ast.Constant):
@@ -106,10 +119,10 @@ def convert_annotation(node):
     elif isinstance(node, ast.Str):
         return node.s
 
-    raise Exception('unknown annotation node: {}'.format(str(node)))
+    raise SourceCodeException('unknown annotation node', node)
 
 
-def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
+def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None, lineno=None, col_offset=None):
     if parent_node is None:
         save_to.write('None')
         return
@@ -120,69 +133,75 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
     for node in chain([parent_node], ast.iter_child_nodes(parent_node)):
         if hasattr(node, 'custom_ignore') and node.custom_ignore:
             continue
-            
+
+        lineno = node.lineno if hasattr(node, 'lineno') else lineno
+        col_offset = node.col_offset if hasattr(node, 'col_offset') else col_offset
+        node.lineno = lineno
+        node.col_offset = col_offset
+
         node.custom_ignore = True
         if isinstance(node, ast.AnnAssign):
             save_to.write('    '*level)
-            ann_name = convert_annotation(node.annotation)
+            ann_name = convert_annotation(node.annotation, node)
             save_to.write(f'{ann_name} ')
-            walk(node.target, save_to, level)
+            walk(node.target, save_to, level, lineno=lineno, col_offset=col_offset)
             if node.value and not is_constant_none(node):
                 save_to.write(' = ')
-                walk(node.value, save_to, level)
+                walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
 
             save_to.write(';\n')
 
         elif isinstance(node, ast.Assign):
             if isinstance(node.value, ast.IfExp):
                 data = {'target': node.targets[0], 'value': None}
-                walk(node.value, save_to, level, for_ifexpr=data)
+                walk(node.value, save_to, level, for_ifexpr=data, lineno=lineno, col_offset=col_offset)
                 data['target'].custom_ignore = False
                 node.value = data['value']
 
             for target in node.targets:
                 save_to.write('    ' * level)
-                walk(target, save_to, level)
+                walk(target, save_to, level, lineno=lineno, col_offset=col_offset)
                 save_to.write(' = ')
                 node.value.custom_ignore = False
-                walk(node.value, save_to, level)
+                walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
                 save_to.write(';\n')
 
         elif isinstance(node, ast.AugAssign):
             save_to.write('    '*level)
-            walk(node.target, save_to, level)
+            walk(node.target, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(' {}= '.format(convert_op(node.op)))
-            walk(node.value, save_to, level)
+            walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(';\n')
 
         elif isinstance(node, ast.FunctionDef):
             save_to.write('    '*level)
-            ann_name = convert_annotation(node.returns)
+            ann_name = convert_annotation(node.returns, node)
             save_to.write(f'{ann_name} {node.name}(')
             str_args = []
             data_args = node.args
             for arg in data_args.args:
-                ann_name = convert_annotation(arg.annotation)
+                ann_name = convert_annotation(arg.annotation, node)
                 str_args.append(f'{ann_name} {arg.arg}')
-            
+
             save_to.write(', '.join(str_args) if data_args.args else 'void')
             save_to.write(') {\n')
             for node_body in node.body:
-                walk(node_body, save_to, level+1)
-                
+                walk(node_body, save_to, level+1, lineno=lineno, col_offset=col_offset)
+
             save_to.write('}\n')
 
         elif isinstance(node, ast.Call):  # TODO: обрабатывать другие виды аргуентов
-            walk(node.func, save_to, level)
+            walk(node.func, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(f'(')
-            for arg in node.args:
-                walk(arg, save_to, level)
-                save_to.write(', ')
-            
+            for arg_index, arg_node in enumerate(node.args, 1):
+                walk(arg_node, save_to, level, lineno=lineno, col_offset=col_offset)
+                if arg_index < len(node.args):
+                    save_to.write(', ')
+
             for keyword in node.keywords:
                 #walk(arg, save_to, level)
                 save_to.write(', ')
-            
+
             save_to.write(')')
 
         elif isinstance(node, (ast.Constant, ast.Num, ast.Str)):
@@ -198,21 +217,28 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
 
         elif isinstance(node, ast.Name):
             save_to.write('{}'.format(node.id))
+            node.ctx.custom_ignore = True  # we don't use is ast.Load, ast.Store and ast.Del
+
+        elif isinstance(node, ast.Delete):
+            for target_node in node.targets:
+                save_to.write('delete ')
+                walk(target_node, save_to, level, lineno=lineno, col_offset=col_offset)
+                save_to.write(';\n')
 
         elif isinstance(node, ast.BinOp):
-            walk(node.left, save_to, level)
+            walk(node.left, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(' {} '.format(convert_op(node.op)))
-            walk(node.right, save_to, level)
+            walk(node.right, save_to, level, lineno=lineno, col_offset=col_offset)
 
         elif isinstance(node, ast.BoolOp):
-            walk(node.values[0], save_to, level)
+            walk(node.values[0], save_to, level, lineno=lineno, col_offset=col_offset)
             for value in node.values[1:]:
                 save_to.write(' {} '.format(convert_bool_op(node.op)))
-                walk(value, save_to, level)
+                walk(value, save_to, level, lineno=lineno, col_offset=col_offset)
 
         elif isinstance(node, ast.UnaryOp):
                 save_to.write(' {}'.format(convert_unary_op(node.op)))
-                walk(node.operand, save_to, level)
+                walk(node.operand, save_to, level, lineno=lineno, col_offset=col_offset)
 
         elif isinstance(node, ast.Return):
             if node.value:
@@ -220,7 +246,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
                 save_to.write('return')
                 if not is_constant_none(node.value):
                     save_to.write(' ')
-                    walk(node.value, save_to, level)
+                    walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
                 else:
                     node.value.custom_ignore = True
 
@@ -232,11 +258,11 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
                 annotation=ast.Name(id='unsigned int', ctx=ast.Load),
                 value=None,
             )
-            walk(target, save_to, level)
+            walk(target, save_to, level, lineno=lineno, col_offset=col_offset)
 
             save_to.write('    ' * level)
             save_to.write('if (')
-            walk(node.test, save_to)
+            walk(node.test, save_to, lineno=lineno, col_offset=col_offset)
             save_to.write(') {\n')
             save_to.write('    ' * (level+1))
             # if for_ifexpr:
@@ -246,7 +272,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
                 targets=[ast.Name(id='success', ctx=ast.Store)],
                 value=node.body,
             )
-            walk(target, save_to)
+            walk(target, save_to, lineno=lineno, col_offset=col_offset)
             # save_to.write(';\n')
             save_to.write('    ' * level)
             save_to.write('} else {\n')
@@ -259,7 +285,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
                 targets=[ast.Name(id='success', ctx=ast.Store)],
                 value=node.orelse,
             )
-            walk(target, save_to)
+            walk(target, save_to, lineno=lineno, col_offset=col_offset)
             # save_to.write(';\n')
             save_to.write('    ' * level)
             save_to.write('}\n\n')
@@ -268,22 +294,22 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
         elif isinstance(node, ast.If):
             save_to.write('    '*level)
             save_to.write('if (')
-            walk(node.test, save_to, level)
+            walk(node.test, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(') {\n')
             for node_body in node.body:
-                walk(node_body, save_to, level+1, has_while_orelse)
-   
+                walk(node_body, save_to, level+1, has_while_orelse, lineno=lineno, col_offset=col_offset)
+
             save_to.write('    '*level)
             save_to.write('}')
             if node.orelse:
                 save_to.write(' else ')
                 if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
-                    walk(node.orelse[0], save_to, level, has_while_orelse)
+                    walk(node.orelse[0], save_to, level, has_while_orelse, lineno=lineno, col_offset=col_offset)
                 else:
                     save_to.write('{\n')
                     for node_orelse in node.orelse:
-                        walk(node_orelse, save_to, level+1, has_while_orelse)
-   
+                        walk(node_orelse, save_to, level+1, has_while_orelse, lineno=lineno, col_offset=col_offset)
+
                     save_to.write('    '*level)
                     save_to.write('}\n\n')
             else:
@@ -296,18 +322,18 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
 
             save_to.write('    ' * level)
             save_to.write('while (')
-            walk(node.test, save_to, level)
+            walk(node.test, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(') {\n')
             for node_body in node.body:
                 # TODO: перед опретаором break необходимо выполнить код "success=0;".
-                walk(node_body, save_to, level+1, has_while_orelse+[bool(node.orelse)])
+                walk(node_body, save_to, level+1, has_while_orelse+[bool(node.orelse)], lineno=lineno, col_offset=col_offset)
 
             save_to.write('    '*level)
             save_to.write('}\n\n')
             if node.orelse:
                 save_to.write('    ' * level)
                 save_to.write('if (success == 1) {\n')
-                walk(node.orelse[0], save_to, level+1)
+                walk(node.orelse[0], save_to, level+1, lineno=lineno, col_offset=col_offset)
                 save_to.write('    ' * level)
                 save_to.write('}\n\n')
 
@@ -325,7 +351,7 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
 
         elif isinstance(node, ast.Expr):
             save_to.write('    ' * level)
-            walk(node.value, save_to, level)
+            walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
             save_to.write(';\n')
 
         elif isinstance(node, (ast.Pass, ast.Module)):
@@ -342,12 +368,12 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None):
             save_to.write('\n')
 
         elif isinstance(node, ast.Compare):
-            walk(node.left, save_to, level)
+            walk(node.left, save_to, level, lineno=lineno, col_offset=col_offset)
             for op, right in zip(node.ops, node.comparators):
                 save_to.write(' {} '.format(convert_compare_op(op)))
-                walk(right, save_to, level)    
+                walk(right, save_to, level, lineno=lineno, col_offset=col_offset)
         else:
-            print('    '*level, node, 'unknown node')
+            raise SourceCodeException(f'unknown node: {node.__class__.__name__} {str(parent_node)}', node)
 
 
 def main(source_code, save_to):
