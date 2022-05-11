@@ -81,3 +81,5 @@ cd -= 1
 cd = -cd
 
 cd = counter = useless_action = 234
+
+e: 'int' = 5 if cd == 99 else 76
