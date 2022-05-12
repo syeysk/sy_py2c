@@ -16,6 +16,28 @@ Translator Python source into C.
 
 # ROADMAP
 
+## Add dataset for:
+- [ ] initing difficult vars: generative lists, dicts, multi-ifs
+- [ ] initing vars with dict (structure in C), list (arrays in C), tupple and set.
+- [ ] conditions and cycles: if-elif-else, while-else, for, switch
+- [ ] functions: without args and return, with args and one return, with multi-return, with default args.
+- [ ] imports and standart c-library
+- [ ] c-pointers
+- [ ] collecting vars and placing their initing into start of program/function
+
+## Other
+
+- [ ] Write tests for datasets
+- [ ] Realise supporting all code in dataset
+- [ ] Add online-compilation by GCC on server
+- [ ] Add modules for calculating registers of microcontrollers (AVR, STM8). It will be a class with some properties: cpu-frequrence, settings of i2c, input/output and other
+
+## Add dataset with mistake code:
+
+- [ ] vars without annotations
+- [ ] trying to changing annotation or assigning value with another type
+
+
 ## Tests
 - [ ] tests of variables and operators
 - [ ] tests of constructions
@@ -39,7 +61,8 @@ About standarts:
 
 ## Versions of Python
 
-Not yet
+- 3.6
+- 3.8
 
 ## Links
 
