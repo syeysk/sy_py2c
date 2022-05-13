@@ -24,6 +24,7 @@ Translator Python source into C.
 - [ ] imports and standart c-library
 - [ ] c-pointers
 - [ ] collecting vars and placing their initing into start of program/function
+- [ ] using constants - all uppercase vars will be recognise like c-constant: `VARIABLE = 67` -> `const variable = 67;` or `#def VARIABLE 67`
 
 ## Other
 
