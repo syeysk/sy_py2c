@@ -31,6 +31,7 @@ Translator Python source into C.
 - [ ] Realise supporting all code in dataset
 - [ ] Add online-compilation by GCC on server
 - [ ] Add modules for calculating registers of microcontrollers (AVR, STM8). It will be a class with some properties: cpu-frequrence, settings of i2c, input/output and other
+- [ ] Set package manager (poetry)
 
 ## Add dataset with mistake code:
 
