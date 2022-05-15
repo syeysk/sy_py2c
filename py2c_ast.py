@@ -19,6 +19,170 @@ class TranslateAlgorythmException(Exception):
     pass
 
 
+class CConverter:
+    def __init__(self, save_to):
+        self.save_to = save_to
+        self.level = 0
+
+        self.col_offset = None
+        self.lineno = None
+        self._walk = None
+
+    def write(self, data: str):
+        self.save_to.write(data)
+
+    @property
+    def ident(self):
+        return '    ' * self.level
+
+    def walk(self, node, level=0):
+        self.level += level
+        self._walk(self, node)
+        self.level -= level
+
+    def process_init_variable(self, name, value, annotation):
+        self.write(f'{self.ident}{annotation} ')
+        name()
+        if value is not None:
+            self.write(' = ')
+            value()
+
+        self.write(';\n')
+
+    def process_assign_variable(self, name, value):
+        self.write(self.ident)
+        name()
+        self.write(' = ')
+        value()
+        self.write(';\n')
+
+    def process_augassign_variable(self, name, value, operator):
+        self.write(self.ident)
+        name()
+        self.write(f' {operator}= ')
+        value()
+        self.write(';\n')
+
+    def process_def_function(self, name, annotation, pos_args, body):
+        self.write(f'{self.ident}{annotation} {name}(')
+        str_args = [f'{annotation_arg} {name_arg}' for annotation_arg, name_arg in pos_args]
+        self.write(', '.join(str_args) if pos_args else 'void')
+        self.write(') {\n')
+        for expression in body:
+            self.walk(expression, 1)
+
+        self.write('}\n')
+
+    def process_call_function(self, name, pos_args):
+        name()
+        self.write(f'(')
+        for pos_arg_index, pos_arg in enumerate(pos_args, 1):
+            self.walk(pos_arg)
+            if pos_arg_index < len(pos_args):
+                self.write(', ')
+
+        self.write(')')
+
+    def process_constant(self, value):
+        if value is None:
+            self.write('NULL')  # для указателей
+        elif isinstance(value, str):
+            self.write(f'"{value}"')
+        elif isinstance(value, bool):
+            self.write('{}'.format(1 if value else 0))
+        elif isinstance(value, (int, float)):
+            self.write(f'{value}')
+
+    def process_name(self, name):
+        self.write(name)
+
+    def process_delete_variable(self, names):
+        for name in names:
+            self.write('delete ')
+            self.walk(name)
+            self.write(';\n')
+
+    def process_continue(self):
+        self.write(f'{self.ident}continue;\n')
+
+    def process_binary_op(self, operand_left, operator, operand_right):
+        operand_left()
+        self.write(f' {operator} ')
+        operand_right()
+
+    def process_unary_op(self, operand, operator):
+        self.write(f' {operator}')
+        operand()
+
+    def process_return(self, expression):
+        self.write(f'{self.ident}return ')
+        expression()
+        self.write(';\n')
+
+    def process_while(self, condition, body, orelse):
+        if orelse:
+            self.write(f'{self.ident}unsigned byte success = 1;\n')
+
+        self.write(f'{self.ident}while (')
+        condition()
+        self.write(') {\n')
+        self.level += 1
+        body()
+        self.level -= 1
+        self.write(f'{self.ident}}}\n\n')
+
+        self.write(f'{self.ident}if (success == 1) {{\n')
+        for expression in orelse:
+            self.walk(expression, 1)
+
+        self.write(f'{self.ident}}}\n\n')
+
+    def process_import_from(self, module_name, imported_objects):
+        self.write(f'#include <{module_name}.h>\n\n')
+
+    def process_import(self, module_names):
+        for module_name in module_names:
+            self.write(f'#include <{module_name}.h>\n')
+
+        self.write('\n')
+
+    def process_expression(self, expression):
+        self.write(self.ident)
+        expression()
+        self.write(';\n')
+
+    def process_if(self, condition, body, orelse):
+        self.write(f'{self.ident}if (')
+        condition()
+        self.write(') {\n')
+        self.level += 1
+        body()
+        self.level -= 1
+        self.write(f'{self.ident}}}')
+
+        if orelse:
+            self.write(' else ')
+            self.write('{\n')
+            self.level += 1
+            orelse()
+            self.level -= 1
+            self.write(f'{self.ident}}}\n\n')
+        else:
+            self.write('\n\n')
+
+    def process_compare(self, operand_left, operators, operands_right):
+        self.walk(operand_left)
+        for operator, operand_right in zip(operators, operands_right):
+            self.write(f' {operator} ')
+            self.walk(operand_right)
+
+    def process_bool_op(self, operand_left, operator, operands_right):
+        self.walk(operand_left)
+        self.write(f' {operator} ')
+        for operand_right in operands_right:
+            self.walk(operand_right)
+
+
 def convert_op(node):
     node.custom_ignore = True
     if isinstance(node, ast.Add):
@@ -122,9 +286,9 @@ def convert_annotation(node, parent_node):
     raise SourceCodeException('unknown annotation node', node)
 
 
-def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None, lineno=None, col_offset=None):
+def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
     if parent_node is None:
-        save_to.write('None')
+        #converter.write('None')
         return
 
     if has_while_orelse is None:
@@ -134,123 +298,122 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None, 
         if hasattr(node, 'custom_ignore') and node.custom_ignore:
             continue
 
-        lineno = node.lineno if hasattr(node, 'lineno') else lineno
-        col_offset = node.col_offset if hasattr(node, 'col_offset') else col_offset
-        node.lineno = lineno
-        node.col_offset = col_offset
+        converter.lineno = node.lineno if hasattr(node, 'lineno') else converter.lineno
+        converter.col_offset = node.col_offset if hasattr(node, 'col_offset') else converter.col_offset
+        node.lineno = converter.lineno
+        node.col_offset = converter.col_offset
 
         node.custom_ignore = True
         if isinstance(node, ast.AnnAssign):
-            save_to.write('    '*level)
-            ann_name = convert_annotation(node.annotation, node)
-            save_to.write(f'{ann_name} ')
-            walk(node.target, save_to, level, lineno=lineno, col_offset=col_offset)
+            value = None
             if node.value and not is_constant_none(node):
-                save_to.write(' = ')
-                walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
+                value = lambda: walk(converter, node.value)
 
-            save_to.write(';\n')
+            converter.process_init_variable(
+                name=lambda: walk(converter, node.target),
+                value=value,
+                annotation=convert_annotation(node.annotation, node),
+            )
 
         elif isinstance(node, ast.Assign):
             if isinstance(node.value, ast.IfExp):
                 data = {'target': node.targets[0], 'value': None}
-                walk(node.value, save_to, level, for_ifexpr=data, lineno=lineno, col_offset=col_offset)
+                walk(converter, node.value, for_ifexpr=data)
                 data['target'].custom_ignore = False
                 node.value = data['value']
 
             for target in node.targets:
-                save_to.write('    ' * level)
-                walk(target, save_to, level, lineno=lineno, col_offset=col_offset)
-                save_to.write(' = ')
                 node.value.custom_ignore = False
-                walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
-                save_to.write(';\n')
+                converter.process_assign_variable(
+                    name=lambda: walk(converter, target),
+                    value=lambda: walk(converter, node.value),
+                )
 
         elif isinstance(node, ast.AugAssign):
-            save_to.write('    '*level)
-            walk(node.target, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(' {}= '.format(convert_op(node.op)))
-            walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(';\n')
+            converter.process_augassign_variable(
+                name=lambda: walk(converter, node.target),
+                value=lambda: walk(converter, node.value),
+                operator=convert_op(node.op),
+            )
 
         elif isinstance(node, ast.FunctionDef):
-            save_to.write('    '*level)
-            ann_name = convert_annotation(node.returns, node)
-            save_to.write(f'{ann_name} {node.name}(')
-            str_args = []
-            data_args = node.args
-            for arg in data_args.args:
+            pos_args = []
+            for arg in node.args.args:
                 ann_name = convert_annotation(arg.annotation, node)
-                str_args.append(f'{ann_name} {arg.arg}')
+                pos_args.append((ann_name, arg.arg))
 
-            save_to.write(', '.join(str_args) if data_args.args else 'void')
-            save_to.write(') {\n')
-            for node_body in node.body:
-                walk(node_body, save_to, level+1, lineno=lineno, col_offset=col_offset)
-
-            save_to.write('}\n')
+            converter.process_def_function(
+                name=node.name,
+                annotation=convert_annotation(node.returns, node),
+                pos_args=pos_args,
+                body=node.body,
+            )
 
         elif isinstance(node, ast.Call):  # TODO: обрабатывать другие виды аргуентов
-            walk(node.func, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(f'(')
-            for arg_index, arg_node in enumerate(node.args, 1):
-                walk(arg_node, save_to, level, lineno=lineno, col_offset=col_offset)
-                if arg_index < len(node.args):
-                    save_to.write(', ')
+            pos_args = []
+            for arg_node in node.args:
+                pos_args.append(arg_node)
 
-            for keyword in node.keywords:
-                #walk(arg, save_to, level)
-                save_to.write(', ')
+            # for keyword in node.keywords:
+            #     #walk(arg)
+            #     converter.write(', ')
 
-            save_to.write(')')
+            converter.process_call_function(
+                name=lambda: walk(converter, node.func),
+                pos_args=pos_args,
+            )
 
-        elif isinstance(node, (ast.Constant, ast.Num, ast.Str)):
-            value = node.value if isinstance(node, ast.Constant) else (node.n if isinstance(node, ast.Num) else node.s)
-            if value is None:
-                save_to.write('NULL')  # для указателей
-            elif isinstance(value, str):
-                save_to.write('"{}"'.format(value))
-            elif isinstance(value, bool):
-                save_to.write('{}'.format(1 if value else 0))
-            elif isinstance(value, (int, float)):
-                save_to.write('{}'.format(value))
+        elif isinstance(node, ast.Constant):
+            converter.process_constant(node.value)
+
+        elif isinstance(node, ast.Num):  # Deprecated since version 3.8
+            converter.process_constant(node.n)
+
+        elif isinstance(node, ast.Str):  # Deprecated since version 3.8
+            converter.process_constant(node.s)
 
         elif isinstance(node, ast.Name):
-            save_to.write('{}'.format(node.id))
-            node.ctx.custom_ignore = True  # we don't use is ast.Load, ast.Store and ast.Del
+            converter.process_name(node.id)
+            node.ctx.custom_ignore = True  # we ignore ast.Load, ast.Store and ast.Del
+
+        elif isinstance(node, (ast.Load, ast.Store, ast.Del)):
+            pass
 
         elif isinstance(node, ast.Delete):
+            names = []
             for target_node in node.targets:
-                save_to.write('delete ')
-                walk(target_node, save_to, level, lineno=lineno, col_offset=col_offset)
-                save_to.write(';\n')
+                names.append(target_node)
+
+            converter.process_delete_variable(names)
 
         elif isinstance(node, ast.BinOp):
-            walk(node.left, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(' {} '.format(convert_op(node.op)))
-            walk(node.right, save_to, level, lineno=lineno, col_offset=col_offset)
+            converter.process_binary_op(
+                operand_left=lambda: walk(converter, node.left),
+                operator=convert_op(node.op),
+                operand_right=lambda: walk(converter, node.right),
+            )
 
         elif isinstance(node, ast.BoolOp):
-            walk(node.values[0], save_to, level, lineno=lineno, col_offset=col_offset)
-            for value in node.values[1:]:
-                save_to.write(' {} '.format(convert_bool_op(node.op)))
-                walk(value, save_to, level, lineno=lineno, col_offset=col_offset)
+            converter.process_bool_op(
+                operand_left=node.values[0],
+                operator=convert_bool_op(node.op),
+                operands_right=node.values[1:],
+            )
 
         elif isinstance(node, ast.UnaryOp):
-                save_to.write(' {}'.format(convert_unary_op(node.op)))
-                walk(node.operand, save_to, level, lineno=lineno, col_offset=col_offset)
+            converter.process_unary_op(
+                operand=lambda: walk(converter, node.operand),
+                operator=convert_unary_op(node.op),
+            )
 
         elif isinstance(node, ast.Return):
-            if node.value:
-                save_to.write('    '*level)
-                save_to.write('return')
-                if not is_constant_none(node.value):
-                    save_to.write(' ')
-                    walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
-                else:
-                    node.value.custom_ignore = True
+            #if node.value:
+            converter.process_return(
+                expression=lambda: walk(converter, node.value),
+            )
 
-                save_to.write(';\n')
+        elif isinstance(node, ast.NameConstant):  # New in version 3.4; Deprecated since version 3.8
+            walk(converter, node.value)
 
         elif isinstance(node, ast.IfExp):
             target = ast.AnnAssign(
@@ -258,127 +421,107 @@ def walk(parent_node, save_to, level=0, has_while_orelse=None, for_ifexpr=None, 
                 annotation=ast.Name(id='unsigned int', ctx=ast.Load),
                 value=None,
             )
-            walk(target, save_to, level, lineno=lineno, col_offset=col_offset)
+            walk(converter, target)
 
-            save_to.write('    ' * level)
-            save_to.write('if (')
-            walk(node.test, save_to, lineno=lineno, col_offset=col_offset)
-            save_to.write(') {\n')
-            save_to.write('    ' * (level+1))
+            converter.write('    ' * converter.level)
+            converter.write('if (')
+            walk(converter, node.test)
+            converter.write(') {\n')
+            converter.write('    ' * (converter.level+1))
             # if for_ifexpr:
-            #     walk(for_ifexpr, save_to)
+            #     walk(for_ifexpr)
 
             target = ast.Assign(
                 targets=[ast.Name(id='success', ctx=ast.Store)],
                 value=node.body,
             )
-            walk(target, save_to, lineno=lineno, col_offset=col_offset)
-            # save_to.write(';\n')
-            save_to.write('    ' * level)
-            save_to.write('} else {\n')
-            save_to.write('    ' * (level+1))
+            walk(converter, target)
+            # converter.write(';\n')
+            converter.write('    ' * converter.level)
+            converter.write('} else {\n')
+            converter.write('    ' * (converter.level+1))
             # if for_ifexpr:
             #     for_ifexpr.custom_ignore = False
-            #     walk(for_ifexpr, save_to)
+            #     walk(for_ifexpr)
 
             target = ast.Assign(
                 targets=[ast.Name(id='success', ctx=ast.Store)],
                 value=node.orelse,
             )
-            walk(target, save_to, lineno=lineno, col_offset=col_offset)
-            # save_to.write(';\n')
-            save_to.write('    ' * level)
-            save_to.write('}\n\n')
+            walk(converter, target)
+            # converter.write(';\n')
+            converter.write('    ' * converter.level)
+            converter.write('}\n\n')
             for_ifexpr['value'] = ast.Name(id='success', ctx=ast.Load)
 
         elif isinstance(node, ast.If):
-            save_to.write('    '*level)
-            save_to.write('if (')
-            walk(node.test, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(') {\n')
-            for node_body in node.body:
-                walk(node_body, save_to, level+1, has_while_orelse, lineno=lineno, col_offset=col_offset)
+            def body():
+                for node_body in node.body:
+                    walk(converter, node_body, has_while_orelse)
 
-            save_to.write('    '*level)
-            save_to.write('}')
-            if node.orelse:
-                save_to.write(' else ')
-                if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
-                    walk(node.orelse[0], save_to, level, has_while_orelse, lineno=lineno, col_offset=col_offset)
-                else:
-                    save_to.write('{\n')
-                    for node_orelse in node.orelse:
-                        walk(node_orelse, save_to, level+1, has_while_orelse, lineno=lineno, col_offset=col_offset)
+            def orelse():
+                for node_orelse in node.orelse:
+                    walk(converter, node_orelse, has_while_orelse)
 
-                    save_to.write('    '*level)
-                    save_to.write('}\n\n')
-            else:
-                save_to.write('\n\n')
+            # if node.orelse:
+            #     if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+            #         walk(converter, node.orelse[0], has_while_orelse)
+
+
+            converter.process_if(
+                condition=lambda: walk(converter, node.test),
+                body=body,
+                orelse=orelse,
+            )
 
         elif isinstance(node, ast.While):
-            if node.orelse:
-                save_to.write('    ' * level)
-                save_to.write('unsigned byte success = 1;\n')
+            def body():
+                for node_body in node.body:
+                    # TODO: перед опретаором break необходимо выполнить код "success=0;".
+                    walk(converter, node_body, has_while_orelse+[bool(node.orelse)])
 
-            save_to.write('    ' * level)
-            save_to.write('while (')
-            walk(node.test, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(') {\n')
-            for node_body in node.body:
-                # TODO: перед опретаором break необходимо выполнить код "success=0;".
-                walk(node_body, save_to, level+1, has_while_orelse+[bool(node.orelse)], lineno=lineno, col_offset=col_offset)
-
-            save_to.write('    '*level)
-            save_to.write('}\n\n')
-            if node.orelse:
-                save_to.write('    ' * level)
-                save_to.write('if (success == 1) {\n')
-                walk(node.orelse[0], save_to, level+1, lineno=lineno, col_offset=col_offset)
-                save_to.write('    ' * level)
-                save_to.write('}\n\n')
+            converter.process_while(
+                condition=lambda: walk(converter, node.test),
+                body=body,
+                orelse=node.orelse,
+            )
 
         elif isinstance(node, ast.Break):
             if has_while_orelse[-1]:
-                save_to.write('    ' * level)
-                save_to.write('success = 0;\n')
+                converter.write('    ' * converter.level)
+                converter.write('success = 0;\n')
 
-            save_to.write('    ' * level)
-            save_to.write('break;\n')
+            converter.write('    ' * converter.level)
+            converter.write('break;\n')
 
         elif isinstance(node, ast.Continue):
-            save_to.write('    ' * level)
-            save_to.write('continue;\n')
+            converter.process_continue()
 
         elif isinstance(node, ast.Expr):
-            save_to.write('    ' * level)
-            walk(node.value, save_to, level, lineno=lineno, col_offset=col_offset)
-            save_to.write(';\n')
+            converter.process_expression(
+                expression=lambda: walk(converter, node.value),
+            )
 
         elif isinstance(node, (ast.Pass, ast.Module)):
             pass
 
         elif isinstance(node, ast.Import):
-            for name in node.names:
-                save_to.write(f'#include <{name.name}.h>\n')
-
-            save_to.write('\n')
+            converter.process_import([node_name.name for node_name in node.names])
 
         elif isinstance(node, ast.ImportFrom):
-            save_to.write(f'#include <{node.module}.h>\n')
-            save_to.write('\n')
+            converter.process_import_from(node.module, None)
 
         elif isinstance(node, ast.Compare):
-            walk(node.left, save_to, level, lineno=lineno, col_offset=col_offset)
-            for op, right in zip(node.ops, node.comparators):
-                save_to.write(' {} '.format(convert_compare_op(op)))
-                walk(right, save_to, level, lineno=lineno, col_offset=col_offset)
+            converter.process_compare(node.left, [convert_compare_op(op) for op in node.ops], node.comparators)
+
         else:
             raise SourceCodeException(f'unknown node: {node.__class__.__name__} {str(parent_node)}', node)
 
 
-def main(source_code, save_to):
+def main(converter, source_code):
+    converter._walk = walk
     tree = ast.parse(source_code)
-    walk(tree, save_to)
+    walk(converter, tree)
 
 
 if __name__ == '__main__':
@@ -388,7 +531,8 @@ if __name__ == '__main__':
         source_code = example_py_file.read()
 
     with open('example.c', 'w') as example_c_file:
-        main(source_code, save_to=example_c_file)
+        converter = CConverter(save_to=example_c_file)
+        main(converter, source_code)
 
     path_example_from_book = 'example/from_book/'
     for filepath in os.listdir(path_example_from_book):
@@ -398,4 +542,5 @@ if __name__ == '__main__':
             source_code = example_py_file.read()
 
         with open(f'{filepath}.c', 'w') as example_c_file:
-            main(source_code, save_to=example_c_file)
+            converter = CConverter(save_to=example_c_file)
+            main(converter, source_code)
