@@ -35,9 +35,9 @@ class CConverter:
     def ident(self):
         return '    ' * self.level
 
-    def walk(self, node, level=0):
+    def walk(self, node, level=0, has_while_orelse=False):
         self.level += level
-        self._walk(self, node)
+        self._walk(self, node, has_while_orelse=has_while_orelse)
         self.level -= level
 
     def process_init_variable(self, name, value, annotation):
@@ -151,21 +151,21 @@ class CConverter:
         expression()
         self.write(';\n')
 
-    def process_if(self, condition, body, orelse):
+    def process_if(self, condition, body, orelse, has_while_orelse):
         self.write(f'{self.ident}if (')
         condition()
         self.write(') {\n')
-        self.level += 1
-        body()
-        self.level -= 1
+        for expression in body:
+            self.walk(expression, 1, has_while_orelse)
+
         self.write(f'{self.ident}}}')
 
         if orelse:
             self.write(' else ')
             self.write('{\n')
-            self.level += 1
-            orelse()
-            self.level -= 1
+            for expression in orelse:
+                self.walk(expression, 1, has_while_orelse)
+
             self.write(f'{self.ident}}}\n\n')
         else:
             self.write('\n\n')
@@ -461,14 +461,6 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
             for_ifexpr['value'] = ast.Name(id='success', ctx=ast.Load)
 
         elif isinstance(node, ast.If):
-            def body():
-                for node_body in node.body:
-                    walk(converter, node_body, has_while_orelse)
-
-            def orelse():
-                for node_orelse in node.orelse:
-                    walk(converter, node_orelse, has_while_orelse)
-
             # if node.orelse:
             #     if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
             #         walk(converter, node.orelse[0], has_while_orelse)
@@ -476,8 +468,9 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
 
             converter.process_if(
                 condition=lambda: walk(converter, node.test),
-                body=body,
-                orelse=orelse,
+                body=node.body,
+                orelse=node.orelse,
+                has_while_orelse=has_while_orelse,
             )
 
         elif isinstance(node, ast.While):
