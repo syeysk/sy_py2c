@@ -182,6 +182,12 @@ class CConverter:
         for operand_right in operands_right:
             self.walk(operand_right)
 
+    def process_break(self, has_while_orelse):
+        if has_while_orelse:
+            self.write(f'{self.ident}success = 0;\n')
+
+        self.write(f'{self.ident}break;\n')
+
 
 def convert_op(node):
     node.custom_ignore = True
@@ -487,12 +493,7 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
             )
 
         elif isinstance(node, ast.Break):
-            if has_while_orelse[-1]:
-                converter.write('    ' * converter.level)
-                converter.write('success = 0;\n')
-
-            converter.write('    ' * converter.level)
-            converter.write('break;\n')
+            converter.process_break(has_while_orelse[-1])
 
         elif isinstance(node, ast.Continue):
             converter.process_continue()
