@@ -1,7 +1,3 @@
-"""
-1.  ast.Num, ast.Str - for Python < 3.8. ast.Num.n = ast.Constant.value
-"""
-
 import ast
 from itertools import chain
 
@@ -27,6 +23,7 @@ class CConverter:
         self.col_offset = None
         self.lineno = None
         self._walk = None
+        self.transit_data = {}
 
     def write(self, data: str):
         self.save_to.write(data)
@@ -35,32 +32,34 @@ class CConverter:
     def ident(self):
         return '    ' * self.level
 
-    def walk(self, node, level=0, has_while_orelse=False):
+    def walk(self, node, level=0):
         self.level += level
-        self._walk(self, node, has_while_orelse=has_while_orelse)
+        self._walk(self, node)
         self.level -= level
 
     def process_init_variable(self, name, value, annotation):
         self.write(f'{self.ident}{annotation} ')
-        name()
+        self.walk(name)
         if value is not None:
             self.write(' = ')
-            value()
+            self.walk(value)
 
         self.write(';\n')
 
-    def process_assign_variable(self, name, value):
+    def process_assign_variable(self, names, value):
         self.write(self.ident)
-        name()
-        self.write(' = ')
-        value()
+        for name in names:
+            self.walk(name)
+            self.write(' = ')
+
+        self.walk(value)
         self.write(';\n')
 
     def process_augassign_variable(self, name, value, operator):
         self.write(self.ident)
-        name()
+        self.walk(name)
         self.write(f' {operator}= ')
-        value()
+        self.walk(value)
         self.write(';\n')
 
     def process_def_function(self, name, annotation, pos_args, body):
@@ -74,7 +73,7 @@ class CConverter:
         self.write('}\n')
 
     def process_call_function(self, name, pos_args):
-        name()
+        self.walk(name)
         self.write(f'(')
         for pos_arg_index, pos_arg in enumerate(pos_args, 1):
             self.walk(pos_arg)
@@ -106,17 +105,17 @@ class CConverter:
         self.write(f'{self.ident}continue;\n')
 
     def process_binary_op(self, operand_left, operator, operand_right):
-        operand_left()
+        self.walk(operand_left)
         self.write(f' {operator} ')
-        operand_right()
+        self.walk(operand_right)
 
     def process_unary_op(self, operand, operator):
         self.write(f' {operator}')
-        operand()
+        self.walk(operand)
 
     def process_return(self, expression):
         self.write(f'{self.ident}return ')
-        expression()
+        self.walk(expression)
         self.write(';\n')
 
     def process_while(self, condition, body, orelse):
@@ -124,11 +123,11 @@ class CConverter:
             self.write(f'{self.ident}unsigned byte success = 1;\n')
 
         self.write(f'{self.ident}while (')
-        condition()
+        self.walk(condition)
         self.write(') {\n')
-        self.level += 1
-        body()
-        self.level -= 1
+        for expression in body:
+            self.walk(expression, 1)
+
         self.write(f'{self.ident}}}\n\n')
 
         self.write(f'{self.ident}if (success == 1) {{\n')
@@ -148,15 +147,15 @@ class CConverter:
 
     def process_expression(self, expression):
         self.write(self.ident)
-        expression()
+        self.walk(expression)
         self.write(';\n')
 
-    def process_if(self, condition, body, orelse, has_while_orelse):
+    def process_if(self, condition, body, orelse):
         self.write(f'{self.ident}if (')
-        condition()
+        self.walk(condition)
         self.write(') {\n')
         for expression in body:
-            self.walk(expression, 1, has_while_orelse)
+            self.walk(expression, 1)
 
         self.write(f'{self.ident}}}')
 
@@ -164,7 +163,7 @@ class CConverter:
             self.write(' else ')
             self.write('{\n')
             for expression in orelse:
-                self.walk(expression, 1, has_while_orelse)
+                self.walk(expression, 1)
 
             self.write(f'{self.ident}}}\n\n')
         else:
@@ -188,6 +187,18 @@ class CConverter:
 
         self.write(f'{self.ident}break;\n')
 
+    def process_ifexpr(self, condition, body, orelse):
+        # process_assign_variable
+        self.write(f'{self.ident}if (')
+        self.walk(condition)
+        self.write(') {\n')
+        self.walk(body, 1)
+        # self.write(';\n')
+        self.write(f'{self.ident}}} else {{\n')
+        self.walk(orelse, 1)
+        # converter.write(';\n')
+        self.write(f'{self.ident}}}\n\n')
+
 
 def convert_op(node):
     node.custom_ignore = True
@@ -199,15 +210,15 @@ def convert_op(node):
         return '*'
     elif isinstance(node, ast.Div):
         return '/'
-    #elif isinstance(node, ast.FloorDiv):
+    # elif isinstance(node, ast.FloorDiv):
     #    return ''
-    #elif isinstance(node, ast.Mod):
+    # elif isinstance(node, ast.Mod):
     #    return ''
-    #elif isinstance(node, ast.Pow):
+    # elif isinstance(node, ast.Pow):
     #    return ''
-    #elif isinstance(node, ast.RShift):
+    # elif isinstance(node, ast.RShift):
     #    return ''
-    #elif isinstance(node, ast.LShift):
+    # elif isinstance(node, ast.LShift):
     #    return ''
     elif isinstance(node, ast.BitOr):
         return '|'
@@ -215,7 +226,7 @@ def convert_op(node):
         return '^'
     elif isinstance(node, ast.BitAnd):
         return '&'
-    #elif isinstance(node, ast.MatMult):
+    # elif isinstance(node, ast.MatMult):
     #    return ''
     else:
         raise SourceCodeException('unknown node operator', node)
@@ -235,13 +246,13 @@ def convert_compare_op(node):
         return '=='
     elif isinstance(node, ast.NotEq):
         return '!='
-    #elif isinstance(node, ast.Is):
+    # elif isinstance(node, ast.Is):
     #    return ''
-    #elif isinstance(node, ast.IsNot):
+    # elif isinstance(node, ast.IsNot):
     #    return ''
-    #elif isinstance(node, ast.In):
+    # elif isinstance(node, ast.In):
     #    return ''
-    #elif isinstance(node, ast.NotIn):
+    # elif isinstance(node, ast.NotIn):
     #    return ''
     else:
         raise SourceCodeException('unknown node compare operator', node)
@@ -292,13 +303,12 @@ def convert_annotation(node, parent_node):
     raise SourceCodeException('unknown annotation node', node)
 
 
-def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
+def walk(converter, parent_node, for_ifexpr=None):
     if parent_node is None:
-        #converter.write('None')
+        # converter.write('None')
         return
 
-    if has_while_orelse is None:
-        has_while_orelse = []
+    has_while_orelse = converter.transit_data.setdefault('has_while_orelse', [])
 
     for node in chain([parent_node], ast.iter_child_nodes(parent_node)):
         if hasattr(node, 'custom_ignore') and node.custom_ignore:
@@ -311,34 +321,27 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
 
         node.custom_ignore = True
         if isinstance(node, ast.AnnAssign):
-            value = None
-            if node.value and not is_constant_none(node):
-                value = lambda: walk(converter, node.value)
-
             converter.process_init_variable(
-                name=lambda: walk(converter, node.target),
-                value=value,
+                name=node.target,
+                value=node.value if node.value and not is_constant_none(node) else None,
                 annotation=convert_annotation(node.annotation, node),
             )
 
         elif isinstance(node, ast.Assign):
-            if isinstance(node.value, ast.IfExp):
-                data = {'target': node.targets[0], 'value': None}
-                walk(converter, node.value, for_ifexpr=data)
-                data['target'].custom_ignore = False
-                node.value = data['value']
+            # if isinstance(node.value, ast.IfExp):
+            #     data = {'targets': node.targets, 'value': None}
+            #     walk(converter, node.value, for_ifexpr=data)
+            #     node.value = data['value']
 
-            for target in node.targets:
-                node.value.custom_ignore = False
-                converter.process_assign_variable(
-                    name=lambda: walk(converter, target),
-                    value=lambda: walk(converter, node.value),
-                )
+            converter.process_assign_variable(
+                names=node.targets,
+                value=node.value,
+            )
 
         elif isinstance(node, ast.AugAssign):
             converter.process_augassign_variable(
-                name=lambda: walk(converter, node.target),
-                value=lambda: walk(converter, node.value),
+                name=node.target,
+                value=node.value,
                 operator=convert_op(node.op),
             )
 
@@ -356,17 +359,9 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
             )
 
         elif isinstance(node, ast.Call):  # TODO: обрабатывать другие виды аргуентов
-            pos_args = []
-            for arg_node in node.args:
-                pos_args.append(arg_node)
-
-            # for keyword in node.keywords:
-            #     #walk(arg)
-            #     converter.write(', ')
-
             converter.process_call_function(
-                name=lambda: walk(converter, node.func),
-                pos_args=pos_args,
+                name=node.func,
+                pos_args=node.args,
             )
 
         elif isinstance(node, ast.Constant):
@@ -394,9 +389,9 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
 
         elif isinstance(node, ast.BinOp):
             converter.process_binary_op(
-                operand_left=lambda: walk(converter, node.left),
+                operand_left=node.left,
                 operator=convert_op(node.op),
-                operand_right=lambda: walk(converter, node.right),
+                operand_right=node.right,
             )
 
         elif isinstance(node, ast.BoolOp):
@@ -408,82 +403,69 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
 
         elif isinstance(node, ast.UnaryOp):
             converter.process_unary_op(
-                operand=lambda: walk(converter, node.operand),
+                operand=node.operand,
                 operator=convert_unary_op(node.op),
             )
 
         elif isinstance(node, ast.Return):
-            #if node.value:
+            # if node.value:
             converter.process_return(
-                expression=lambda: walk(converter, node.value),
+                expression=node.value,
             )
 
         elif isinstance(node, ast.NameConstant):  # New in version 3.4; Deprecated since version 3.8
             walk(converter, node.value)
 
         elif isinstance(node, ast.IfExp):
-            target = ast.AnnAssign(
-                target=ast.Name(id='success', ctx=ast.Store),
-                annotation=ast.Name(id='unsigned int', ctx=ast.Load),
-                value=None,
-            )
-            walk(converter, target)
+            # process_assign_variable
+            # if not for_ifexpr:
+            # target = ast.AnnAssign(
+            #     target=ast.Name(id='temp', ctx=ast.Store),
+            #     annotation=ast.Name(id='unsigned int', ctx=ast.Load),
+            #     value=None,
+            # )
+            # walk(converter, target)
 
-            converter.write('    ' * converter.level)
-            converter.write('if (')
-            walk(converter, node.test)
-            converter.write(') {\n')
-            converter.write('    ' * (converter.level+1))
-            # if for_ifexpr:
-            #     walk(for_ifexpr)
+            # walk(converter, node.test)
 
-            target = ast.Assign(
-                targets=[ast.Name(id='success', ctx=ast.Store)],
-                value=node.body,
-            )
-            walk(converter, target)
-            # converter.write(';\n')
-            converter.write('    ' * converter.level)
-            converter.write('} else {\n')
-            converter.write('    ' * (converter.level+1))
-            # if for_ifexpr:
-            #     for_ifexpr.custom_ignore = False
-            #     walk(for_ifexpr)
+            # targets = for_ifexpr['targets'] if for_ifexpr else [ast.Name(id='temp', ctx=ast.Store)]
+            # for target in targets:
+            #     target.custom_ignore = False
 
-            target = ast.Assign(
-                targets=[ast.Name(id='success', ctx=ast.Store)],
-                value=node.orelse,
+            # target = ast.Assign(targets=targets, value=node.body)
+            # walk(converter, target)
+            # for target in targets:
+            #     target.custom_ignore = False
+            #
+            # target = ast.Assign(targets=targets, value=node.orelse)
+            # walk(converter, target)
+            # for_ifexpr['value'] = ast.Name(id='temp', ctx=ast.Load)
+
+            converter.process_ifexpr(
+                condition=node.test,
+                body=node.body,
+                orelse=node.orelse,
             )
-            walk(converter, target)
-            # converter.write(';\n')
-            converter.write('    ' * converter.level)
-            converter.write('}\n\n')
-            for_ifexpr['value'] = ast.Name(id='success', ctx=ast.Load)
 
         elif isinstance(node, ast.If):
             # if node.orelse:
             #     if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
-            #         walk(converter, node.orelse[0], has_while_orelse)
-
+            #         walk(converter, node.orelse[0])
 
             converter.process_if(
-                condition=lambda: walk(converter, node.test),
+                condition=node.test,
                 body=node.body,
                 orelse=node.orelse,
-                has_while_orelse=has_while_orelse,
             )
 
         elif isinstance(node, ast.While):
-            def body():
-                for node_body in node.body:
-                    # TODO: перед опретаором break необходимо выполнить код "success=0;".
-                    walk(converter, node_body, has_while_orelse+[bool(node.orelse)])
-
+            has_while_orelse.append(bool(node.orelse))
             converter.process_while(
-                condition=lambda: walk(converter, node.test),
-                body=body,
+                condition=node.test,
+                body=node.body,
                 orelse=node.orelse,
             )
+            has_while_orelse.pop()
 
         elif isinstance(node, ast.Break):
             converter.process_break(has_while_orelse[-1])
@@ -493,7 +475,7 @@ def walk(converter, parent_node, has_while_orelse=None, for_ifexpr=None):
 
         elif isinstance(node, ast.Expr):
             converter.process_expression(
-                expression=lambda: walk(converter, node.value),
+                expression=node.value,
             )
 
         elif isinstance(node, (ast.Pass, ast.Module)):
