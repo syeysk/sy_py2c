@@ -34,6 +34,7 @@ Translator Python source into C.
 - [ ] Add modules for calculating registers of microcontrollers (AVR, STM8). It will be a class with some properties: cpu-frequrence, settings of i2c, input/output and other
 - [ ] Set package manager (poetry)
 - [ ] Set allowed modules for import: math, microcontrollers.
+- [ ] Replace highlighter by CodeMirror.
 
 ## Add dataset with mistake code:
 
