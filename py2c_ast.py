@@ -188,16 +188,23 @@ class CConverter:
         self.write(f'{self.ident}break;\n')
 
     def process_ifexpr(self, condition, body, orelse):
-        # process_assign_variable
-        self.write(f'{self.ident}if (')
+        # #process_assign_variable
+        # self.write(f'{self.ident}if (')
+        # self.walk(condition)
+        # self.write(') {\n')
+        # self.walk(body, 1)
+        # # self.write(';\n')
+        # self.write(f'{self.ident}}} else {{\n')
+        # self.walk(orelse, 1)
+        # # converter.write(';\n')
+        # self.write(f'{self.ident}}}\n\n')
+
+        self.write('(')
         self.walk(condition)
-        self.write(') {\n')
-        self.walk(body, 1)
-        # self.write(';\n')
-        self.write(f'{self.ident}}} else {{\n')
-        self.walk(orelse, 1)
-        # converter.write(';\n')
-        self.write(f'{self.ident}}}\n\n')
+        self.write(') ? ')
+        self.walk(body)
+        self.write(' : ')
+        self.walk(orelse)
 
 
 def convert_op(node):
