@@ -38,13 +38,23 @@ class CConverter:
         self.level -= level
 
     def process_init_variable(self, name, value, annotation):
-        self.write(f'{self.ident}{annotation} ')
-        self.walk(name)
-        if value is not None:
-            self.write(' = ')
-            self.walk(value)
+        if annotation == 'const':
+            self.write(f'#define ')
+            self.walk(name)
+            if value is None:
+                raise SourceCodeException('Constanta must have a value!', node)
 
-        self.write(';\n')
+            self.write(' ')
+            self.walk(value)
+            self.write('\n')
+        else:
+            self.write(f'{self.ident}{annotation} ')
+            self.walk(name)
+            if value is not None:
+                self.write(' = ')
+                self.walk(value)
+
+            self.write(';\n')
 
     def process_assign_variable(self, names, value):
         self.write(self.ident)
@@ -62,7 +72,14 @@ class CConverter:
         self.walk(value)
         self.write(';\n')
 
-    def process_def_function(self, name, annotation, pos_args, body):
+    def process_def_function(self, name, annotation, pos_args, body, desrciption_comment):
+        if desrciption_comment:
+            self.write(f'{self.ident}/*\n')
+            for line in desrciption_comment.split('\n'):
+                self.write(f'{self.ident}{line}\n')
+
+            self.write(f'{self.ident}*/\n')
+
         self.write(f'{self.ident}{annotation} {name}(')
         str_args = [f'{annotation_arg} {name_arg}' for annotation_arg, name_arg in pos_args]
         self.write(', '.join(str_args) if pos_args else 'void')
@@ -206,6 +223,14 @@ class CConverter:
         self.write(' : ')
         self.walk(orelse)
 
+    def process_link(self, value):
+        self.write('&')
+        self.walk(value)
+
+    def process_lambda(self, args, body):  # only for #define. TODO: build functions for anothes cases
+        self.write('({}) '.format(', '.join(args)))
+        self.walk(body)
+
 
 def convert_op(node):
     node.custom_ignore = True
@@ -310,7 +335,7 @@ def convert_annotation(node, parent_node):
     raise SourceCodeException('unknown annotation node', node)
 
 
-def walk(converter, parent_node, for_ifexpr=None):
+def walk(converter, parent_node):
     if parent_node is None:
         # converter.write('None')
         return
@@ -354,15 +379,27 @@ def walk(converter, parent_node, for_ifexpr=None):
 
         elif isinstance(node, ast.FunctionDef):
             pos_args = []
-            for arg in node.args.args:
+            for arg in node.args.args:  # node.args is ast.arguments
                 ann_name = convert_annotation(arg.annotation, node)
                 pos_args.append((ann_name, arg.arg))
+
+            desrciption_comment = None
+            if hasattr(node, 'type_comment'):  # for Python 3.8 and upper
+                desrciption_comment = node.type_comment
+            else:
+                first_node = node.body[0] if node.body else None
+                if first_node and isinstance(first_node, ast.Expr):
+                    if isinstance(first_node.value, ast.Str):
+                        desrciption_comment = first_node.value.s
+                    elif isinstance(first_node.value, ast.Constant):
+                        desrciption_comment = first_node.value.value
 
             converter.process_def_function(
                 name=node.name,
                 annotation=convert_annotation(node.returns, node),
                 pos_args=pos_args,
                 body=node.body,
+                desrciption_comment=desrciption_comment,
             )
 
         elif isinstance(node, ast.Call):  # TODO: обрабатывать другие виды аргуентов
@@ -496,6 +533,20 @@ def walk(converter, parent_node, for_ifexpr=None):
 
         elif isinstance(node, ast.Compare):
             converter.process_compare(node.left, [convert_compare_op(op) for op in node.ops], node.comparators)
+
+        elif isinstance(node, ast.Attribute):
+            if node.attr == 'link':
+                converter.process_link(node.value)
+
+        elif isinstance(node, ast.Lambda):
+            pos_args = []
+            node.args.custom_ignore = True
+            for arg in node.args.args:  # node.args is ast.arguments
+                # ann_name = convert_annotation(arg.annotation, node)
+                # pos_args.append((ann_name, arg.arg))
+                pos_args.append(arg.arg)
+
+            converter.process_lambda(pos_args, node.body)
 
         else:
             raise SourceCodeException(f'unknown node: {node.__class__.__name__} {str(parent_node)}', node)
