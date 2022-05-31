@@ -390,8 +390,12 @@ def walk(converter, parent_node):
                 first_node = node.body[0] if node.body else None
                 if first_node and isinstance(first_node, ast.Expr):
                     if isinstance(first_node.value, ast.Str):
+                        first_node.custom_ignore = True
+                        first_node.value.custom_ignore = True
                         desrciption_comment = first_node.value.s
                     elif isinstance(first_node.value, ast.Constant):
+                        first_node.custom_ignore = True
+                        first_node.value.custom_ignore = True
                         desrciption_comment = first_node.value.value
 
             converter.process_def_function(
