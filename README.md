@@ -35,6 +35,8 @@ Translator Python source into C.
 - [ ] Set package manager (poetry)
 - [ ] Set allowed modules for import: math, microcontrollers.
 - [x] Replace highlighter by CodeMirror.
+- [ ] Arithmetic priory
+- [ ] Brackets
 
 ## Add dataset with mistake code:
 

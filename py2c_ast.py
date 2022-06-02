@@ -7,7 +7,7 @@ class SourceCodeException(Exception):
         message, node = self.args
         lineno = node.lineno if hasattr(node, 'lineno') else None
         col_offset = node.col_offset if hasattr(node, 'col_offset') else '-'
-        name = node.name if hasattr(node, 'name') else '-'
+        name = node.__class__.__name__  # node.name if hasattr(node, 'name') else '-'
         return f'{message}! Line: {lineno}/{col_offset} Name: {name}'
 
 
@@ -16,7 +16,8 @@ class TranslateAlgorythmException(Exception):
 
 
 class CConverter:
-    def __init__(self, save_to):
+    def __init__(self, save_to, config=None):
+        self.config = {} if config is None else config
         self.save_to = save_to
         self.level = 0
 
@@ -154,10 +155,12 @@ class CConverter:
         self.write(f'{self.ident}}}\n\n')
 
     def process_import_from(self, module_name, imported_objects):
+        module_name = module_name.replace('.', '/')
         self.write(f'#include <{module_name}.h>\n\n')
 
     def process_import(self, module_names):
         for module_name in module_names:
+            module_name = module_name.replace('.', '/')
             self.write(f'#include <{module_name}.h>\n')
 
         self.write('\n')
@@ -231,6 +234,12 @@ class CConverter:
         self.write('({}) '.format(', '.join(args)))
         self.walk(body)
 
+    def process_subscript(self, variable, index):
+        self.walk(variable)
+        self.write('[')
+        self.walk(index)
+        self.write(']')
+
 
 def convert_op(node):
     node.custom_ignore = True
@@ -244,8 +253,8 @@ def convert_op(node):
         return '/'
     # elif isinstance(node, ast.FloorDiv):
     #    return ''
-    # elif isinstance(node, ast.Mod):
-    #    return ''
+    elif isinstance(node, ast.Mod):
+        return '%'
     # elif isinstance(node, ast.Pow):
     #    return ''
     # elif isinstance(node, ast.RShift):
@@ -320,6 +329,9 @@ def is_constant_none(node):
 
 def convert_annotation(node, parent_node):
     if node is None:
+        if isinstance(parent_node, ast.FunctionDef):
+            return 'void'
+
         raise SourceCodeException('annotation must be!', parent_node)
 
     node.custom_ignore = True
@@ -331,6 +343,8 @@ def convert_annotation(node, parent_node):
         return node.n
     elif isinstance(node, ast.Str):
         return node.s
+    elif isinstance(node, ast.NameConstant):  # Python 3.4 - 3.8
+        return convert_annotation(node.value, parent_node)
 
     raise SourceCodeException('unknown annotation node', node)
 
@@ -552,8 +566,20 @@ def walk(converter, parent_node):
 
             converter.process_lambda(pos_args, node.body)
 
+        # Subscripting
+        elif isinstance(node, ast.Subscript):
+            index = None
+            if isinstance(node.slice, ast.Index):
+                node.slice.custom_ignore = True
+                index = node.slice.value
+
+            converter.process_subscript(node.value, index)
+
+        # elif isinstance(node, ast.Slice):
+        # elif isinstance(node, ast.ExtSlice):
+
         else:
-            raise SourceCodeException(f'unknown node: {node.__class__.__name__} {str(parent_node)}', node)
+            raise SourceCodeException(f'unknown node: {node.__class__.__name__}', node)
 
 
 def main(converter, source_code):
