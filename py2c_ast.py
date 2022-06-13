@@ -44,7 +44,6 @@ class CConverter:
     def walk(self, node, level=0):
         self.level += level
         self._walk(self, node)
-        self.transit_data.get('parents', []).pop()
         self.level -= level
 
     def process_init_variable(self, name, value, annotation):
@@ -82,13 +81,19 @@ class CConverter:
         self.walk(value)
         self.write(';\n')
 
-    def process_def_function(self, name, annotation, pos_args, body, desrciption_comment):
-        if desrciption_comment:
-            self.write(f'{self.ident}/*\n')
-            for line in desrciption_comment.split('\n'):
-                self.write(f'{self.ident}{line}\n')
+    def process_multiline_comment(self, comment):
+        self.write(f'\n{self.ident}/*\n')
+        for line in comment.strip().split('\n'):
+            self.write(f'{self.ident}{line}\n')
 
-            self.write(f'{self.ident}*/\n')
+        self.write(f'{self.ident}*/\n')
+
+    def process_oneline_comment(self, comment):
+        self.write(f'{self.ident}// {comment}\n')
+
+    def process_def_function(self, name, annotation, pos_args, body, docstring_comment):
+        if docstring_comment:
+            self.process_multiline_comment(docstring_comment)
 
         self.write(f'{self.ident}{annotation} {name}(')
         str_args = [f'{annotation_arg} {name_arg}' for annotation_arg, name_arg in pos_args]
@@ -143,8 +148,11 @@ class CConverter:
         self.walk(operand)
 
     def process_return(self, expression):
-        self.write(f'{self.ident}return ')
-        self.walk(expression)
+        self.write(f'{self.ident}return')
+        if expression:
+            self.write(' ')
+            self.walk(expression)
+
         self.write(';\n')
 
     def process_while(self, condition, body, orelse):
@@ -368,8 +376,7 @@ def walk(converter, node):
 
     parents = converter.transit_data.setdefault('parents', [])
     parent_node = parents[-1] if parents else None
-    if parent_node != node:
-        parents.append(node)
+    parents.append(node)
 
     has_while_orelse = converter.transit_data.setdefault('has_while_orelse', [])
 
@@ -410,27 +417,27 @@ def walk(converter, node):
             ann_name = convert_annotation(arg.annotation, node)
             pos_args.append((ann_name, arg.arg))
 
-        desrciption_comment = None
+        docstring_comment = None
         if hasattr(node, 'type_comment'):  # for Python 3.8 and upper
-            desrciption_comment = node.type_comment
+            docstring_comment = node.type_comment
         else:
             first_node = node.body[0] if node.body else None
             if first_node and isinstance(first_node, ast.Expr):
                 if isinstance(first_node.value, ast.Str):
                     first_node.custom_ignore = True
                     first_node.value.custom_ignore = True
-                    desrciption_comment = first_node.value.s
+                    docstring_comment = first_node.value.s
                 elif isinstance(first_node.value, ast.Constant):
                     first_node.custom_ignore = True
                     first_node.value.custom_ignore = True
-                    desrciption_comment = first_node.value.value
+                    docstring_comment = first_node.value.value
 
         converter.process_def_function(
             name=node.name,
             annotation=convert_annotation(node.returns, node),
             pos_args=pos_args,
             body=node.body,
-            desrciption_comment=desrciption_comment,
+            docstring_comment=docstring_comment,
         )
 
     elif isinstance(node, ast.Call):  # TODO: обрабатывать другие виды аргуентов
@@ -553,9 +560,21 @@ def walk(converter, node):
         converter.process_continue()
 
     elif isinstance(node, ast.Expr):
-        converter.process_expression(
-            expression=node.value,
-        )
+        if isinstance(node.value, (ast.Str, ast.Constant)) and isinstance(parent_node, ast.Module):
+            comment = ''
+            if isinstance(node.value, ast.Str):
+                comment = node.value.s
+            elif isinstance(node.value, ast.Constant):
+                comment = node.value.value
+
+            if '\n' in comment:
+                converter.process_multiline_comment(comment)
+            else:
+                converter.process_one_comment(comment)
+        else:
+            converter.process_expression(
+                expression=node.value,
+            )
 
     elif isinstance(node, ast.Pass):
         pass
@@ -605,6 +624,9 @@ def walk(converter, node):
 
     else:
         raise SourceCodeException(f'unknown node: {node.__class__.__name__}', node)
+
+    if parents:
+        parents.pop()
 
 
 def main(converter, source_code):
