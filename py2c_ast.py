@@ -144,7 +144,7 @@ class CConverter:
         self.write_rbracket(is_need_brackets)
 
     def process_unary_op(self, operand, operator):
-        self.write(f' {operator}')
+        self.write(f'{operator}')
         self.walk(operand)
 
     def process_return(self, expression):
