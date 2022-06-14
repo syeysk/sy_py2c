@@ -75,3 +75,29 @@ class UnaryOperatorsTestCase(Py2CTestCase):
         result_code = 'int variable = 1;\nvariable = ~variable;\n'
         self.assertSuccess(source_code, result_code)
 
+
+class TernaryOperatorTestCase(Py2CTestCase):
+    def test_ternary(self):
+        source_code = 'a: int = 1\nb: int\nb = 10 if a == 99 else b'
+        result_code = 'int a = 1;\nint b;\nb = (a == 99) ? 10 : b;\n'
+        self.assertSuccess(source_code, result_code)
+
+
+class DeleteTestCase(Py2CTestCase):
+    def test_delete(self):
+        source_code = 'del a, b'
+        result_code = 'delete a;\ndelete b;\n'
+        self.assertSuccess(source_code, result_code)
+
+
+class PreprocConstantsTestCase(Py2CTestCase):
+    def test_variable(self):
+        source_code = 'TEST_CONST: const = 56'
+        result_code = '#define TEST_CONST 56\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_function(self):
+        source_code = 'TEST_FUNC: const = lambda x, y: x-y*7'
+        result_code = '#define TEST_FUNC (x,y) x - (y * 7)\n'
+        #result_code = '#define TEST_FUNC(x,y) x - (y * 7)\n'
+        self.assertSuccess(source_code, result_code)
