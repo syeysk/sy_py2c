@@ -92,12 +92,75 @@ class DeleteTestCase(Py2CTestCase):
 
 class PreprocConstantsTestCase(Py2CTestCase):
     def test_variable(self):
-        source_code = 'TEST_CONST: const = 56'
+        # TODO: использовать preproc вместо const
+        source_code = 'TEST_CONST: preproc = 56'
         result_code = '#define TEST_CONST 56\n'
-        self.assertSuccess(source_code, result_code)
+        #self.assertSuccess(source_code, result_code)
 
     def test_function(self):
-        source_code = 'TEST_FUNC: const = lambda x, y: x-y*7'
+        # TODO: использовать preproc вместо const
+        source_code = 'TEST_FUNC: preproc = lambda x, y: x-y*7'
+        # TODO: убрать пробел между `TEST_FUNC` и `(x,y)`
         result_code = '#define TEST_FUNC (x,y) x - (y * 7)\n'
         #result_code = '#define TEST_FUNC(x,y) x - (y * 7)\n'
+        #self.assertSuccess(source_code, result_code)
+
+
+class ImportTestCase(Py2CTestCase):
+    def test_import_one_module(self):
+        source_code = 'import module1'
+        result_code = '#include <module1.h>\n\n'
         self.assertSuccess(source_code, result_code)
+
+    def test_import_some_modules_inline(self):
+        source_code = 'import module1, module2, module3'
+        result_code = '#include <module1.h>\n#include <module2.h>\n#include <module3.h>\n\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_import_some_modules_multiline(self):
+        source_code = 'import module1\nimport module2\nimport module3'
+        # TODO: убрать двойные пробелы между импортами
+        result_code = '#include <module1.h>\n\n#include <module2.h>\n\n#include <module3.h>\n\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_import_from(self):
+        source_code = 'from module1 import name1, name2'
+        result_code = '#include <module1.h>\n\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_import_from_multi(self):
+        source_code = 'from module1 import name1, name2\nfrom module2 import name3, name4'
+        result_code = '#include <module1.h>\n\n#include <module2.h>\n\n'
+        self.assertSuccess(source_code, result_code)
+
+
+class FunctionTestCase(Py2CTestCase):
+    # def test_empty_function(self):
+    #     source_code = 'def function() -> None: pass'
+    #     result_code = 'void function(void) {\n}\n'
+    #     self.assertSuccess(source_code, result_code)
+
+    def test_empty_typed_function(self):
+        source_code = 'def function() -> int: pass'
+        result_code = 'int function(void) {\n}\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_typed_function_with_return(self):
+        source_code = 'def function() -> int: return 34'
+        result_code = 'int function(void) {\n    return 34;\n}\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_typed_function_with_return_and_args(self):
+        source_code = 'def function(arg1: float, arg2: char) -> int:\n    a: int = 5\n    return a + arg1'
+        result_code = 'int function(float arg1, char arg2) {\n    int a = 5;\n    return a + arg1;\n}\n'
+        self.assertSuccess(source_code, result_code)
+
+    # def test_typed_function_with_return_none(self):
+    #     source_code = 'def function() -> None: return'
+    #     result_code = 'void function(void) {\n    return;\n}\n'
+    #     self.assertSuccess(source_code, result_code)
+
+    # def test_typed_function_with_return_none(self):
+    #     source_code = 'def function() -> None: return None'
+    #     result_code = 'void function(void) {\n    return NULL;\n}\n'
+    #     self.assertSuccess(source_code, result_code)
