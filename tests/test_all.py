@@ -164,3 +164,30 @@ class FunctionTestCase(Py2CTestCase):
     #     source_code = 'def function() -> None: return None'
     #     result_code = 'void function(void) {\n    return NULL;\n}\n'
     #     self.assertSuccess(source_code, result_code)
+
+    def test_calling_function(self):
+        source_code = 'function(arg1, 1)'
+        result_code = 'function(arg1, 1);\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_assign_calling_function(self):
+        source_code = 'variable: int = function(arg1, 1)'
+        result_code = 'int variable = function(arg1, 1);\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_assign_calling_function_with_ternary_op(self):
+        source_code = 'variable: int = function(arg1, 5 if c > 45 else d)'
+        result_code = 'int variable = function(arg1, ((c > 45) ? 5 : d));\n'
+        self.assertSuccess(source_code, result_code)
+
+
+class IfTestCase(Py2CTestCase):
+    def test_if(self):
+        source_code = 'if variable > 1:\n    variable2 = 2'
+        result_code = 'if (variable > 1) {\n    variable2 = 2;\n}\n\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_if_else(self):
+        source_code = 'if variable > 1:\n    variable2 = 2\nelse:\n    variable3 = 3'
+        result_code = 'if (variable > 1) {\n    variable2 = 2;\n} else {\n    variable3 = 3;\n}\n\n'
+        self.assertSuccess(source_code, result_code)
