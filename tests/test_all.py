@@ -192,13 +192,25 @@ class IfTestCase(Py2CTestCase):
         result_code = 'if (variable > 1) {\n    variable2 = 2;\n} else {\n    variable3 = 3;\n}\n\n'
         self.assertSuccess(source_code, result_code)
 
-    # def test_if_elif_else(self):
-    #     source_code = 'if var > 1:\n    var2 = 2\nelif var < -10:\n    var4 = 4\nelse:\n    var3 = 3'
-    #     result_code = (
-    #         'if (var > 1) {\n    var2 = 2;\n}'
-    #         'else if (var < -10) {\n    var4 = 4;\n} else {\n    var3 = 3;\n}\n\n'
-    #     )
-    #     self.assertSuccess(source_code, result_code)
+    def test_if_elif_else(self):
+        source_code = (
+            'if var > 1:\n'
+            '    var2 = 2\n'
+            'elif var < -10:\n'
+            '    var4 = 4\n'
+            'else:\n'
+            '    var3 = 3'
+        )
+        result_code = (
+            'if (var > 1) {\n'
+            '    var2 = 2;\n'
+            '} else if (var < -10) {\n'
+            '    var4 = 4;\n'
+            '} else {\n'
+            '    var3 = 3;\n'
+            '}\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
 
 
 class WhileTestCase(Py2CTestCase):
