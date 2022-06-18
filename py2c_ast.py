@@ -511,30 +511,6 @@ def walk(converter, node):
         walk(converter, node.value)
 
     elif isinstance(node, ast.IfExp):
-        # process_assign_variable
-        # if not for_ifexpr:
-        # target = ast.AnnAssign(
-        #     target=ast.Name(id='temp', ctx=ast.Store),
-        #     annotation=ast.Name(id='unsigned int', ctx=ast.Load),
-        #     value=None,
-        # )
-        # walk(converter, target)
-
-        # walk(converter, node.test)
-
-        # targets = for_ifexpr['targets'] if for_ifexpr else [ast.Name(id='temp', ctx=ast.Store)]
-        # for target in targets:
-        #     target.custom_ignore = False
-
-        # target = ast.Assign(targets=targets, value=node.body)
-        # walk(converter, target)
-        # for target in targets:
-        #     target.custom_ignore = False
-        #
-        # target = ast.Assign(targets=targets, value=node.orelse)
-        # walk(converter, target)
-        # for_ifexpr['value'] = ast.Name(id='temp', ctx=ast.Load)
-
         is_need_brackets = isinstance(parent_node, (ast.Call, ast.BoolOp))
         converter.process_ifexpr(
             condition=node.test,
@@ -544,10 +520,6 @@ def walk(converter, node):
         )
 
     elif isinstance(node, ast.If):
-        # if node.orelse:
-        #     if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
-        #         walk(converter, node.orelse[0])
-
         ifelses = []
         orelse = node.orelse
         while orelse and len(orelse) == 1 and isinstance(orelse[0], ast.If):
