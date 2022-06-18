@@ -190,7 +190,7 @@ class CConverter:
         self.walk(expression)
         self.write(';\n')
 
-    def process_if(self, condition, body, orelse):
+    def process_if(self, condition, body, ifelses, orelse):
         self.write(f'{self.ident}if (')
         self.walk(condition)
         self.write(') {\n')
@@ -199,15 +199,24 @@ class CConverter:
 
         self.write(f'{self.ident}}}')
 
+        for ifelse_condition, ifelse_body in ifelses:
+            self.write(' else if (')
+            self.walk(ifelse_condition)
+            self.write(') {\n')
+            for expression in ifelse_body:
+                self.walk(expression, 1)
+
+            self.write(f'{self.ident}}}')
+
         if orelse:
             self.write(' else ')
             self.write('{\n')
             for expression in orelse:
                 self.walk(expression, 1)
 
-            self.write(f'{self.ident}}}\n\n')
-        else:
-            self.write('\n\n')
+            self.write(f'{self.ident}}}')
+
+        self.write('\n\n')
 
     def process_compare(self, operand_left, operators, operands_right):
         self.walk(operand_left)
@@ -539,10 +548,18 @@ def walk(converter, node):
         #     if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
         #         walk(converter, node.orelse[0])
 
+        ifelses = []
+        orelse = node.orelse
+        while orelse and len(orelse) == 1 and isinstance(orelse[0], ast.If):
+            ifelses.append((node.orelse[0].test, node.orelse[0].body))
+            orelse = node.orelse[0].orelse
+            node.orelse = None
+
         converter.process_if(
             condition=node.test,
             body=node.body,
-            orelse=node.orelse,
+            ifelses=ifelses,
+            orelse=orelse,
         )
 
     elif isinstance(node, ast.While):
