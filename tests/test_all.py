@@ -191,3 +191,62 @@ class IfTestCase(Py2CTestCase):
         source_code = 'if variable > 1:\n    variable2 = 2\nelse:\n    variable3 = 3'
         result_code = 'if (variable > 1) {\n    variable2 = 2;\n} else {\n    variable3 = 3;\n}\n\n'
         self.assertSuccess(source_code, result_code)
+
+    # def test_if_elif_else(self):
+    #     source_code = 'if var > 1:\n    var2 = 2\nelif var < -10:\n    var4 = 4\nelse:\n    var3 = 3'
+    #     result_code = (
+    #         'if (var > 1) {\n    var2 = 2;\n}'
+    #         'else if (var < -10) {\n    var4 = 4;\n} else {\n    var3 = 3;\n}\n\n'
+    #     )
+    #     self.assertSuccess(source_code, result_code)
+
+
+class WhileTestCase(Py2CTestCase):
+    def test_while(self):
+        source_code = (
+            'while variable < 10:\n'
+            '    variable2 += 1\n'
+            '    if variable2 == 0:\n'
+            '        break\n'
+            '    else:\n'
+            '        continue'
+        )
+        result_code = (
+            'while (variable < 10) {\n'
+            '    variable2 += 1;\n'
+            '    if (variable2 == 0) {\n'
+            '        break;\n'
+            '    } else {\n'
+            '        continue;\n'
+            '    }\n\n'  # TODO: должен быть только один перенос
+            '}\n'
+        )
+        #self.assertSuccess(source_code, result_code)
+
+    def test_while_else(self):
+        source_code = (
+            'while variable < 10:\n'
+            '    variable2 += 1\n'
+            '    if variable2 == 0:\n'
+            '        break\n'
+            '    else:\n'
+            '        continue\n'
+            'else:\n'
+            '   variable = 0'
+        )
+        result_code = (
+            'unsigned byte success = 1;\n'
+            'while (variable < 10) {\n'
+            '    variable2 += 1;\n'
+            '    if (variable2 == 0) {\n'
+            '        success = 0;\n'
+            '        break;\n'
+            '    } else {\n'
+            '        continue;\n'
+            '    }\n\n'  # TODO: должен быть только один перенос
+            '}\n\n'
+            'if (success == 1) {\n'
+            '    variable = 0;\n'
+            '}\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
