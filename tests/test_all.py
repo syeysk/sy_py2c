@@ -219,9 +219,9 @@ class WhileTestCase(Py2CTestCase):
             '    } else {\n'
             '        continue;\n'
             '    }\n\n'  # TODO: должен быть только один перенос
-            '}\n'
+            '}\n\n'
         )
-        #self.assertSuccess(source_code, result_code)
+        self.assertSuccess(source_code, result_code)
 
     def test_while_else(self):
         source_code = (

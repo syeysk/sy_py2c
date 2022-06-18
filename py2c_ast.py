@@ -167,11 +167,12 @@ class CConverter:
 
         self.write(f'{self.ident}}}\n\n')
 
-        self.write(f'{self.ident}if (success == 1) {{\n')
-        for expression in orelse:
-            self.walk(expression, 1)
+        if orelse:
+            self.write(f'{self.ident}if (success == 1) {{\n')
+            for expression in orelse:
+                self.walk(expression, 1)
 
-        self.write(f'{self.ident}}}\n\n')
+            self.write(f'{self.ident}}}\n\n')
 
     def process_import_from(self, module_name, imported_objects):
         module_name = module_name.replace('.', '/')
