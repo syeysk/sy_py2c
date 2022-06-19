@@ -1,12 +1,12 @@
 var1: 'unsigned int' = 10  # unsigned int var1 = 10;
-var2: 'unsigned int' = None  # unsigned int var2;
+var2: 'unsigned int'  # unsigned int var2;
 var3: 'unsigned int'  # unsigned int var3;
 var4: 'unsigned char' = 'a'
 var5: 'unsigned char' = 20
 
 
 def func1() -> 'void':  # void func1() {};
-    return None
+    return
 
 
 def func2(arg1: 'ann1', arg2: 'ct1' = 5, arg3: 'ct2' = 8,
@@ -36,7 +36,7 @@ def func3() -> 'unsigned char':
         fvar = 67
         fvar += 5
 
-    return 'c', 6
+    return 'c'#, 6
 
 
 var5 = func2(var5, 897) + 'test' + var4

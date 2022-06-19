@@ -3,12 +3,12 @@ from typing import Optional
 
 
 class SourceCodeException(Exception):
-    def __repr__(self):
-        message, node = self.args
+    def __init__(self, message, node):
         lineno = node.lineno if hasattr(node, 'lineno') else None
         col_offset = node.col_offset if hasattr(node, 'col_offset') else '-'
         name = node.__class__.__name__  # node.name if hasattr(node, 'name') else '-'
-        return f'{message}! Line: {lineno}/{col_offset} Name: {name}'
+        message = f'{message}! Line: {lineno}/{col_offset} Name: {name}'
+        super().__init__(message)
 
 
 class InvalidAnnotationException(SourceCodeException):
@@ -130,9 +130,9 @@ class CConverter:
 
         self.write(')')
 
-    def process_constant(self, value):
+    def process_constant(self, value, parent_node):
         if value is None:
-            raise NoneIsNotAllowedException('None is forbidden')
+            raise NoneIsNotAllowedException('None is forbidden', parent_node)
 
         elif isinstance(value, str):
             self.write(f'"{value}"')
@@ -383,7 +383,7 @@ def convert_annotation(annotation_node, parent_node) -> Optional[str]:
         return annotation_node.id
     elif isinstance(annotation_node, ast.Constant):
         if annotation_node.value is None:
-            raise NoneIsNotAllowedException('None is forbidden')
+            raise NoneIsNotAllowedException('None is forbidden', parent_node)
 
         return annotation_node.value
     elif isinstance(annotation_node, ast.Num):
@@ -485,13 +485,13 @@ def walk(converter, node):
         )
 
     elif isinstance(node, ast.Constant):
-        converter.process_constant(node.value)
+        converter.process_constant(node.value, node)
 
     elif isinstance(node, ast.Num):  # Deprecated since version 3.8
-        converter.process_constant(node.n)
+        converter.process_constant(node.n, node)
 
     elif isinstance(node, ast.Str):  # Deprecated since version 3.8
-        converter.process_constant(node.s)
+        converter.process_constant(node.s, node)
 
     elif isinstance(node, ast.Name):
         converter.process_name(node.id)
@@ -551,8 +551,8 @@ def walk(converter, node):
         ifelses = []
         orelse = node.orelse
         while orelse and len(orelse) == 1 and isinstance(orelse[0], ast.If):
-            ifelses.append((node.orelse[0].test, node.orelse[0].body))
-            orelse = node.orelse[0].orelse
+            ifelses.append((orelse[0].test, orelse[0].body))
+            orelse = orelse[0].orelse
             node.orelse = None
 
         converter.process_if(

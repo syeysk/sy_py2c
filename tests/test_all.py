@@ -209,6 +209,8 @@ class IfTestCase(Py2CTestCase):
             '    var2 = 2\n'
             'elif var < -10:\n'
             '    var4 = 4\n'
+            'elif var < -5:\n'
+            '    var5 = 5\n'
             'else:\n'
             '    var3 = 3'
         )
@@ -217,6 +219,8 @@ class IfTestCase(Py2CTestCase):
             '    var2 = 2;\n'
             '} else if (var < -10) {\n'
             '    var4 = 4;\n'
+            '} else if (var < -5) {\n'
+            '    var5 = 5;\n'
             '} else {\n'
             '    var3 = 3;\n'
             '}\n\n'
