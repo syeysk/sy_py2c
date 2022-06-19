@@ -1,8 +1,7 @@
-from decimal import DecimalException
 from io import StringIO
 from unittest import TestCase
 
-from py2c_ast import CConverter, SourceCodeException, main, InvalidAnnotationException, NoneIsNotAllowedException
+from py2c import CConverter, main, InvalidAnnotationException, NoneIsNotAllowedException
 
 
 class Py2CTestCase(TestCase):
