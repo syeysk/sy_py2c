@@ -1,5 +1,5 @@
 import ast
-from itertools import chain
+from typing import Optional
 
 
 class SourceCodeException(Exception):
@@ -9,6 +9,14 @@ class SourceCodeException(Exception):
         col_offset = node.col_offset if hasattr(node, 'col_offset') else '-'
         name = node.__class__.__name__  # node.name if hasattr(node, 'name') else '-'
         return f'{message}! Line: {lineno}/{col_offset} Name: {name}'
+
+
+class InvalidAnnotationException(SourceCodeException):
+    pass
+
+
+class NoneIsNotAllowedException(SourceCodeException):
+    pass
 
 
 class TranslateAlgorythmException(Exception):
@@ -92,6 +100,9 @@ class CConverter:
         self.write(f'{self.ident}// {comment}\n')
 
     def process_def_function(self, name, annotation, pos_args, body, docstring_comment):
+        if annotation is None:
+            annotation = 'void'
+
         if docstring_comment:
             self.process_multiline_comment(docstring_comment)
 
@@ -116,7 +127,8 @@ class CConverter:
 
     def process_constant(self, value):
         if value is None:
-            self.write('NULL')  # для указателей
+            raise NoneIsNotAllowedException('None is forbidden')
+
         elif isinstance(value, str):
             self.write(f'"{value}"')
         elif isinstance(value, bool):
@@ -358,26 +370,29 @@ def is_constant_none(node):
     return isinstance(node, (ast.Constant, ast.Num, ast.Str)) and node.value is None
 
 
-def convert_annotation(node, parent_node):
-    if node is None:
-        if isinstance(parent_node, ast.FunctionDef):
-            return 'void'
+def convert_annotation(annotation_node, parent_node) -> Optional[str]:
+    # # закомментирован, так как переменные могут быть объявлены в C-библиотеках
+    # if not allow_absent and annotation_node is None:
+    #     raise SourceCodeException('annotation must be!', parent_node)
+    if annotation_node is None:
+        return
 
-        raise SourceCodeException('annotation must be!', parent_node)
+    annotation_node.custom_ignore = True
+    if isinstance(annotation_node, ast.Name):
+        return annotation_node.id
+    elif isinstance(annotation_node, ast.Constant):
+        if annotation_node.value is None:
+            raise NoneIsNotAllowedException('None is forbidden')
 
-    node.custom_ignore = True
-    if isinstance(node, ast.Name):
-        return node.id
-    elif isinstance(node, ast.Constant):
-        return node.value
-    elif isinstance(node, ast.Num):
-        return node.n
-    elif isinstance(node, ast.Str):
-        return node.s
-    elif isinstance(node, ast.NameConstant):  # Python 3.4 - 3.8
-        return convert_annotation(node.value, parent_node)
+        return annotation_node.value
+    elif isinstance(annotation_node, ast.Num):
+        return annotation_node.n
+    elif isinstance(annotation_node, ast.Str):
+        return annotation_node.s
+    elif isinstance(annotation_node, ast.NameConstant):  # Python 3.4 - 3.8
+        return convert_annotation(annotation_node.value, parent_node)
 
-    raise SourceCodeException('unknown annotation node', node)
+    raise InvalidAnnotationException('unknown annotation node', annotation_node)
 
 
 def walk(converter, node):

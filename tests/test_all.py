@@ -1,7 +1,8 @@
+from decimal import DecimalException
 from io import StringIO
 from unittest import TestCase
 
-from py2c_ast import CConverter, main
+from py2c_ast import CConverter, SourceCodeException, main, InvalidAnnotationException, NoneIsNotAllowedException
 
 
 class Py2CTestCase(TestCase):
@@ -13,19 +14,25 @@ class Py2CTestCase(TestCase):
         main(self.converter, source_code)
         self.assertEqual(self.file_stdout.getvalue(), result_code)
 
-    def assertBad(self, exception, source_code):
+    def assertBad(self, source_code, exception):
         self.assertRaises(exception, main, self.converter, source_code)
 
 
 class OperatorsAndVariablesTestCase(Py2CTestCase):
-    def test_init_empty_variable(self):
-        source_code = 'variable: int'
-        result_code = 'int variable;\n'
+    def test_init_variables_with_valid_annotation(self):
+        source_code = 'variable1: \'int\' = 1\nvariable2: int = 1'
+        result_code = 'int variable1 = 1;\nint variable2 = 1;\n'
         self.assertSuccess(source_code, result_code)
 
-    def test_init_integer_variable(self):
-        source_code = 'variable: int = 1'
-        result_code = 'int variable = 1;\n'
+    def test_init_variables_with_invalid_annotation_1(self):
+        self.assertBad('a: a + b = 1', InvalidAnnotationException)
+
+    def test_init_variables_with_invalid_annotation_2(self):
+        self.assertBad('b: print(1) = 1', InvalidAnnotationException)
+
+    def test_init_empty_variables(self):
+        source_code = 'variable1: int'
+        result_code = 'int variable1;\n'
         self.assertSuccess(source_code, result_code)
 
     def test_init_string_variable(self):
@@ -38,11 +45,6 @@ class OperatorsAndVariablesTestCase(Py2CTestCase):
         result_code = 'char variable = \"a\";\n'
         self.assertSuccess(source_code, result_code)
 
-    def test_init_integer_variable_with_operators(self):
-        source_code = 'variable: int = None'
-        result_code = 'int variable = NULL;\n'
-        self.assertSuccess(source_code, result_code)
-
     def test_init_some_variables_with_the_different_types(self):
         source_code = 'a: int\nb: float\nc: char'
         result_code = 'int a;\nfloat b;\nchar c;\n'
@@ -52,6 +54,24 @@ class OperatorsAndVariablesTestCase(Py2CTestCase):
     #     source_code = 'a: int\nb: int\nc: int'
     #     result_code = 'int a, b, c;\n'
     #     self.assertSuccess(source_code, result_code)
+
+
+class NoneTestCase(Py2CTestCase):
+    def test_none_value_of_variable(self):
+        self.assertBad('variable2: int = None', NoneIsNotAllowedException)
+
+    def test_none_annotation_of_variable(self):
+        self.assertBad('variable2: None = 1', NoneIsNotAllowedException)
+
+    def test_none_annotation_of_function(self):
+        self.assertBad('def function() -> None:\n    pass', NoneIsNotAllowedException)
+
+    def test_typed_function_with_return_none(self):
+        self.assertBad('def function(): return None', NoneIsNotAllowedException)
+
+
+class NULLTestCase(Py2CTestCase):
+    ...
 
 
 class UnaryOperatorsTestCase(Py2CTestCase):
@@ -91,7 +111,7 @@ class DeleteTestCase(Py2CTestCase):
 
 
 class PreprocConstantsTestCase(Py2CTestCase):
-    def test_variable(self):
+    def test_variable_preproc(self):
         # TODO: использовать preproc вместо const
         source_code = 'TEST_CONST: preproc = 56'
         result_code = '#define TEST_CONST 56\n'
@@ -135,10 +155,10 @@ class ImportTestCase(Py2CTestCase):
 
 
 class FunctionTestCase(Py2CTestCase):
-    # def test_empty_function(self):
-    #     source_code = 'def function() -> None: pass'
-    #     result_code = 'void function(void) {\n}\n'
-    #     self.assertSuccess(source_code, result_code)
+    def test_empty_function(self):
+        source_code = 'def function(): pass'
+        result_code = 'void function(void) {\n}\n'
+        self.assertSuccess(source_code, result_code)
 
     def test_empty_typed_function(self):
         source_code = 'def function() -> int: pass'
@@ -155,15 +175,10 @@ class FunctionTestCase(Py2CTestCase):
         result_code = 'int function(float arg1, char arg2) {\n    int a = 5;\n    return a + arg1;\n}\n'
         self.assertSuccess(source_code, result_code)
 
-    # def test_typed_function_with_return_none(self):
-    #     source_code = 'def function() -> None: return'
-    #     result_code = 'void function(void) {\n    return;\n}\n'
-    #     self.assertSuccess(source_code, result_code)
-
-    # def test_typed_function_with_return_none(self):
-    #     source_code = 'def function() -> None: return None'
-    #     result_code = 'void function(void) {\n    return NULL;\n}\n'
-    #     self.assertSuccess(source_code, result_code)
+    def test_typed_function_with_return_none(self):
+        source_code = 'def function(): return'
+        result_code = 'void function(void) {\n    return;\n}\n'
+        self.assertSuccess(source_code, result_code)
 
     def test_calling_function(self):
         source_code = 'function(arg1, 1)'
