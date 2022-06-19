@@ -54,7 +54,7 @@ class CConverter:
         self._walk(self, node)
         self.level -= level
 
-    def process_init_variable(self, name, value_expr, value_lambda, annotation):
+    def process_init_variable(self, name, value_expr, value_lambda, annotation: Optional[str]):
         if annotation == 'preproc':
             self.write(f'#define ')
             self.walk(name)
@@ -104,7 +104,7 @@ class CConverter:
     def process_oneline_comment(self, comment):
         self.write(f'{self.ident}// {comment}\n')
 
-    def process_def_function(self, name, annotation, pos_args, body, docstring_comment):
+    def process_def_function(self, name, annotation: Optional[str], pos_args, body, docstring_comment):
         if annotation is None:
             annotation = 'void'
 
