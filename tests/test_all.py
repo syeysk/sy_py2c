@@ -112,15 +112,12 @@ class DeleteTestCase(Py2CTestCase):
 
 class PreprocConstantsTestCase(Py2CTestCase):
     def test_variable_preproc(self):
-        # TODO: использовать preproc вместо const
         source_code = 'TEST_CONST: preproc = 56'
         result_code = '#define TEST_CONST 56\n'
         self.assertSuccess(source_code, result_code)
 
     def test_function(self):
         source_code = 'TEST_FUNC: preproc = lambda x, y: x-y*7'
-        # TODO: убрать пробел между `TEST_FUNC` и `(x,y)`
-        result_code = '#define TEST_FUNC (x,y) x - (y * 7)\n'
         result_code = '#define TEST_FUNC(x,y) x - (y * 7)\n'
         self.assertSuccess(source_code, result_code)
 
