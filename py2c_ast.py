@@ -54,22 +54,27 @@ class CConverter:
         self._walk(self, node)
         self.level -= level
 
-    def process_init_variable(self, name, value, annotation):
-        if annotation == 'const':
+    def process_init_variable(self, name, value_expr, value_lambda, annotation):
+        if annotation == 'preproc':
             self.write(f'#define ')
             self.walk(name)
-            if value is None:
-                raise SourceCodeException('The constant must have a value!', node)
+            if value_expr:
+                self.write(' ')
+                self.walk(value_expr)
+            elif value_lambda:
+                args, body = value_lambda
+                self.write('({}) '.format(','.join(args)))
+                self.walk(body)
+            else:
+                raise SourceCodeException('The constant must have a value!')
 
-            self.write(' ')
-            self.walk(value)
             self.write('\n')
         else:
             self.write(f'{self.ident}{annotation} ')
             self.walk(name)
-            if value is not None:
+            if value_expr:
                 self.write(' = ')
-                self.walk(value)
+                self.walk(value_expr)
 
             self.write(';\n')
 
@@ -273,7 +278,7 @@ class CConverter:
         self.write('&')
         self.walk(value)
 
-    def process_lambda(self, args, body):  # only for #define. TODO: build functions for anothes cases
+    def process_lambda(self, args, body):  # only for #define. TODO: build functions for another cases
         self.write('({}) '.format(','.join(args)))
         self.walk(body)
 
@@ -366,10 +371,6 @@ def convert_unary_op(node):
         raise SourceCodeException('unknown node unary operator', node)
 
 
-def is_constant_none(node):
-    return isinstance(node, (ast.Constant, ast.Num, ast.Str)) and node.value is None
-
-
 def convert_annotation(annotation_node, parent_node) -> Optional[str]:
     # # закомментирован, так как переменные могут быть объявлены в C-библиотеках
     # if not allow_absent and annotation_node is None:
@@ -412,9 +413,21 @@ def walk(converter, node):
 
     node.custom_ignore = True
     if isinstance(node, ast.AnnAssign):
+        if isinstance(node.value, ast.Lambda):
+            lambda_node = node.value
+            lambda_node.custom_ignore = True
+            args = [arg.arg for arg in lambda_node.args.args]
+            body = lambda_node.body
+            value_expr = None
+            value_lambda = (args, body)
+        else:
+            value_expr = node.value
+            value_lambda = None
+
         converter.process_init_variable(
             name=node.target,
-            value=node.value if node.value and not is_constant_none(node) else None,
+            value_expr=value_expr,
+            value_lambda=value_lambda,
             annotation=convert_annotation(node.annotation, node),
         )
 
@@ -601,8 +614,6 @@ def walk(converter, node):
         pos_args = []
         node.args.custom_ignore = True
         for arg in node.args.args:  # node.args is ast.arguments
-            # ann_name = convert_annotation(arg.annotation, node)
-            # pos_args.append((ann_name, arg.arg))
             pos_args.append(arg.arg)
 
         converter.process_lambda(pos_args, node.body)
