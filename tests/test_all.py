@@ -276,3 +276,16 @@ class WhileTestCase(Py2CTestCase):
             '}\n\n'
         )
         self.assertSuccess(source_code, result_code)
+
+
+class CommentTestCase(Py2CTestCase):
+    def test_function_docstring(self):
+        source_code = (
+            'def function():\n'
+            '    """ test docstring"""\n'
+        )
+        result_code = (
+            '\n/*\ntest docstring\n*/\n'
+            'void function(void) {\n}\n'
+        )
+        self.assertSuccess(source_code, result_code)
