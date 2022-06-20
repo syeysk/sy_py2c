@@ -279,13 +279,49 @@ class WhileTestCase(Py2CTestCase):
 
 
 class CommentTestCase(Py2CTestCase):
-    def test_function_docstring(self):
+    def test_function_oneline_docstring(self):
         source_code = (
             'def function():\n'
             '    """ test docstring"""\n'
         )
         result_code = (
-            '\n/*\ntest docstring\n*/\n'
+            '\n/*\n'
+            'test docstring\n'
+            '*/\n'
             'void function(void) {\n}\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_function_multiline_docstring(self):
+        source_code = (
+            'def function():\n'
+            '    """\n'
+            '    test docstring\n'
+            '    the second test docstring\n'
+            '    """\n'
+        )
+        result_code = (
+            '\n/*\n'
+            'test docstring\n'
+            'the second test docstring\n'
+            '*/\n'
+            'void function(void) {\n}\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_function_multiline_comment(self):
+        source_code = (
+            'some_var = 1\n'
+            '"""\n'
+            'test comment\n'
+            'the second test comment\n'
+            '"""\n'
+        )
+        result_code = (
+            'some_var = 1;\n'
+            '\n/*\n'
+            'test comment\n'
+            'the second test comment\n'
+            '*/\n'
         )
         self.assertSuccess(source_code, result_code)

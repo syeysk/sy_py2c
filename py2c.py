@@ -455,17 +455,10 @@ def walk(converter, node):
             ann_name = convert_annotation(arg.annotation, node)
             pos_args.append((ann_name, arg.arg))
 
-        docstring_comment = None
-        first_node = node.body[0] if node.body else None
-        if first_node and isinstance(first_node, ast.Expr):
-            if isinstance(first_node.value, ast.Str):
-                first_node.custom_ignore = True
-                first_node.value.custom_ignore = True
-                docstring_comment = first_node.value.s
-            elif isinstance(first_node.value, ast.Constant):
-                first_node.custom_ignore = True
-                first_node.value.custom_ignore = True
-                docstring_comment = first_node.value.value
+        docstring_comment = ast.get_docstring(node)
+        if docstring_comment is not None:
+            node.body[0].custom_ignore = True
+            node.body[0].value.custom_ignore = True
 
         converter.process_def_function(
             name=node.name,
