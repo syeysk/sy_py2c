@@ -1,5 +1,5 @@
 import ast
-from typing import Optional
+from typing import Optional, List, Tuple
 
 
 class SourceCodeException(Exception):
@@ -16,6 +16,10 @@ class InvalidAnnotationException(SourceCodeException):
 
 
 class NoneIsNotAllowedException(SourceCodeException):
+    pass
+
+
+class UnsupportedImportException(SourceCodeException):
     pass
 
 
@@ -66,7 +70,7 @@ class CConverter:
                 self.write('({}) '.format(','.join(args)))
                 self.walk(body)
             else:
-                raise SourceCodeException('The constant must have a value!')
+                raise SourceCodeException('The constant must have a value', self.transit_data['parents'][-1])
 
             self.write('\n')
         else:
@@ -191,16 +195,26 @@ class CConverter:
 
             self.write(f'{self.ident}}}\n\n')
 
-    def process_import_from(self, module_name, imported_objects):
+    def process_import_from(self, module_name, imported_objects: List[Tuple[str]]):
+        if len(imported_objects) > 1 or imported_objects[0][0] != '*':
+            raise UnsupportedImportException(
+                'This import is not supported. Use `from module_name import *`',
+                self.transit_data['parents'][-1],
+            )
+
         module_name = module_name.replace('.', '/')
         self.write(f'#include <{module_name}.h>\n\n')
 
     def process_import(self, module_names):
-        for module_name in module_names:
-            module_name = module_name.replace('.', '/')
-            self.write(f'#include <{module_name}.h>\n')
-
-        self.write('\n')
+        raise UnsupportedImportException(
+            'This import is not supported. Use `from module_name import *`',
+            self.transit_data['parents'][-1],
+        )
+        # for module_name in module_names:
+        #     module_name = module_name.replace('.', '/')
+        #     self.write(f'#include <{module_name}.h>\n')
+        #
+        # self.write('\n')
 
     def process_expression(self, expression):
         self.write(self.ident)
@@ -591,7 +605,8 @@ def walk(converter, node):
         converter.process_import([node_name.name for node_name in node.names])
 
     elif isinstance(node, ast.ImportFrom):
-        converter.process_import_from(node.module, None)
+        names = [(alias.name, alias.asname) for alias in node.names]
+        converter.process_import_from(node.module, names)
 
     elif isinstance(node, ast.Compare):
         converter.process_compare(node.left, [convert_compare_op(op) for op in node.ops], node.comparators)

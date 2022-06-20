@@ -1,7 +1,7 @@
 from io import StringIO
 from unittest import TestCase
 
-from py2c import CConverter, main, InvalidAnnotationException, NoneIsNotAllowedException
+from py2c import CConverter, main, InvalidAnnotationException, NoneIsNotAllowedException, UnsupportedImportException
 
 
 class Py2CTestCase(TestCase):
@@ -122,30 +122,25 @@ class PreprocConstantsTestCase(Py2CTestCase):
 
 
 class ImportTestCase(Py2CTestCase):
-    def test_import_one_module(self):
+    def test_invalid_import_one_module(self):
         source_code = 'import module1'
-        result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        self.assertBad(source_code, UnsupportedImportException)
 
-    def test_import_some_modules_inline(self):
+    def test_invalid_import_some_modules_inline(self):
         source_code = 'import module1, module2, module3'
-        result_code = '#include <module1.h>\n#include <module2.h>\n#include <module3.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        self.assertBad(source_code, UnsupportedImportException)
 
-    def test_import_some_modules_multiline(self):
-        source_code = 'import module1\nimport module2\nimport module3'
-        # TODO: убрать двойные пробелы между импортами
-        result_code = '#include <module1.h>\n\n#include <module2.h>\n\n#include <module3.h>\n\n'
-        self.assertSuccess(source_code, result_code)
-
-    def test_import_from(self):
+    def test_invalid_import_some_names_from(self):
         source_code = 'from module1 import name1, name2'
-        result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        self.assertBad(source_code, UnsupportedImportException)
 
-    def test_import_from_multi(self):
-        source_code = 'from module1 import name1, name2\nfrom module2 import name3, name4'
-        result_code = '#include <module1.h>\n\n#include <module2.h>\n\n'
+    def test_invalid_import_one_name_from(self):
+        source_code = 'from module1 import name1'
+        self.assertBad(source_code, UnsupportedImportException)
+
+    def test_allowed_import(self):
+        source_code = 'from module1 import *'
+        result_code = '#include <module1.h>\n\n'
         self.assertSuccess(source_code, result_code)
 
 
