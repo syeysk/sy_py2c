@@ -143,6 +143,11 @@ class ImportTestCase(Py2CTestCase):
         result_code = '#include <module1.h>\n\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_allowed_multiline_import(self):
+        source_code = 'from module1 import *\nfrom module2 import *'
+        result_code = '#include <module1.h>\n\n#include <module2.h>\n\n'  # TODO: один перенос между импортами
+        self.assertSuccess(source_code, result_code)
+
 
 class FunctionTestCase(Py2CTestCase):
     def test_empty_function(self):
