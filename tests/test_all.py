@@ -320,3 +320,17 @@ class CommentTestCase(Py2CTestCase):
             '*/\n'
         )
         self.assertSuccess(source_code, result_code)
+
+
+class LinksTestCase(Py2CTestCase):
+    def test_link(self):
+        source_code = 'function(variable.link)'
+        result_code = 'function(&variable);\n'
+        self.assertSuccess(source_code, result_code)
+
+
+class ArraysTestCase(Py2CTestCase):
+    def test_array_assign(self):
+        source_code = 'variable[10] = 50'
+        result_code = 'variable[10] = 50;\n'
+        self.assertSuccess(source_code, result_code)
