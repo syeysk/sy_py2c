@@ -409,6 +409,9 @@ def convert_annotation(annotation_node, parent_node) -> Optional[str]:
     elif isinstance(annotation_node, ast.Str):
         return annotation_node.s
     elif isinstance(annotation_node, ast.NameConstant):  # Python 3.4 - 3.8
+        if annotation_node.value is None:
+            raise NoneIsNotAllowedException('None is forbidden', parent_node)
+
         return convert_annotation(annotation_node.value, parent_node)
 
     raise InvalidAnnotationException('unknown annotation node', annotation_node)
