@@ -347,6 +347,11 @@ class ArraysTestCase(Py2CTestCase):
         result_code = 'variable[10] = 50;\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_array_using(self):
+        source_code = 'variable1 = variable2[variable3]'
+        result_code = 'variable1 = variable2[variable3];\n'
+        self.assertSuccess(source_code, result_code)
+
 
 # class LambdaTestCase(Py2CTestCase):
 #     def test_lambda(self):
