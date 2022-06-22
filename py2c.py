@@ -23,6 +23,10 @@ class UnsupportedImportException(SourceCodeException):
     pass
 
 
+class LambdaIsNotAllowedHereException(SourceCodeException):
+    pass
+
+
 class TranslateAlgorythmException(Exception):
     pass
 
@@ -626,9 +630,11 @@ def walk(converter, node):
     # Subscripting
     elif isinstance(node, ast.Subscript):
         index = None
-        if isinstance(node.slice, ast.Index):
+        if isinstance(node.slice, ast.Index): # ast.Index is for Python <=3.8;
             node.slice.custom_ignore = True
             index = node.slice.value
+        elif isinstance(node.slice, ast.Constant): # ast.Constant is for Python >= 3.9
+            index = node.slice
 
         converter.process_subscript(node.value, index)
 

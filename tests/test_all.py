@@ -1,7 +1,14 @@
 from io import StringIO
 from unittest import TestCase
 
-from py2c import CConverter, main, InvalidAnnotationException, NoneIsNotAllowedException, UnsupportedImportException
+from py2c import (
+    CConverter,
+    main,
+    InvalidAnnotationException,
+    LambdaIsNotAllowedHereException,
+    NoneIsNotAllowedException,
+    UnsupportedImportException,
+)
 
 
 class Py2CTestCase(TestCase):
@@ -339,3 +346,10 @@ class ArraysTestCase(Py2CTestCase):
         source_code = 'variable[10] = 50'
         result_code = 'variable[10] = 50;\n'
         self.assertSuccess(source_code, result_code)
+
+
+# class LambdaTestCase(Py2CTestCase):
+#     def test_lambda(self):
+#         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию
+#         source_code = "variable1: int = lambda x, y: x + y"
+#         self.assertBad(source_code, LambdaIsNotAllowedHereException)
