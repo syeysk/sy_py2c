@@ -199,16 +199,19 @@ class FunctionTestCase(Py2CTestCase):
 
 
 class IfTestCase(Py2CTestCase):
+    # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if(self):
         source_code = 'if variable > 1:\n    variable2 = 2'
         result_code = 'if (variable > 1) {\n    variable2 = 2;\n}\n\n'
         self.assertSuccess(source_code, result_code)
 
+    # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if_else(self):
         source_code = 'if variable > 1:\n    variable2 = 2\nelse:\n    variable3 = 3'
         result_code = 'if (variable > 1) {\n    variable2 = 2;\n} else {\n    variable3 = 3;\n}\n\n'
         self.assertSuccess(source_code, result_code)
 
+    # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if_elif_else(self):
         source_code = (
             'if var > 1:\n'
@@ -229,6 +232,69 @@ class IfTestCase(Py2CTestCase):
             '    var5 = 5;\n'
             '} else {\n'
             '    var3 = 3;\n'
+            '}\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_if_multiline(self):
+        source_code = (
+            'if variable1 == 1:\n'
+            '    variable2 = 2\n'
+            '    function1()\n'
+        )
+        result_code = (
+            'if (variable1 == 1) {\n'
+            '    variable2 = 2;\n'
+            '    function1();\n'
+            '}\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_if_else_multiline(self):
+        source_code = (
+            'if variable > 1:\n'
+            '    variable2 = 2\n'
+            '    function1()\n'
+            'else:\n'
+            '    variable3 = 3\n'
+            '    function2()\n'
+        )
+        result_code = (
+            'if (variable > 1) {\n'
+            '    variable2 = 2;\n'
+            '    function1();\n'
+            '} else {\n'
+            '    variable3 = 3;\n'
+            '    function2();\n'
+            '}\n\n')
+        self.assertSuccess(source_code, result_code)
+
+    def test_if_elif_else_multiline(self):
+        source_code = (
+            'if var > 1:\n'
+            '    var2 = 2\n'
+            '    function1()\n'
+            'elif var < -10:\n'
+            '    var4 = 4\n'
+            '    function2()\n'
+            'elif var < -5:\n'
+            '    var5 = 5\n'
+            'else:\n'
+            '    var3 = 3\n'
+            '    function3()\n'
+        )
+        result_code = (
+            'if (var > 1) {\n'
+            '    var2 = 2;\n'
+            '    function1();\n'
+            '} else if (var < -10) {\n'
+            '    var4 = 4;\n'
+            '    function2();\n'
+            '} else if (var < -5) {\n'
+            '    var5 = 5;\n'
+            '} else {\n'
+            '    var3 = 3;\n'
+            '    function3();\n'
             '}\n\n'
         )
         self.assertSuccess(source_code, result_code)
