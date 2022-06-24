@@ -1,4 +1,5 @@
 import ast
+from dataclasses import dataclass
 from typing import Optional, List, Tuple
 
 
@@ -31,6 +32,12 @@ class TranslateAlgorythmException(Exception):
     pass
 
 
+@dataclass
+class Annotation:
+    type: str
+    array_sizes: Optional[str] = None
+
+
 class CConverter:
     def __init__(self, save_to, config=None):
         self.config = {} if config is None else config
@@ -57,13 +64,40 @@ class CConverter:
     def ident(self):
         return '    ' * self.level
 
+    @property
+    def parent_node(self):  # TODO: внедрить данное свойство
+        return self.transit_data['parents'][-1]
+
     def walk(self, node, level=0):
         self.level += level
         self._walk(self, node)
         self.level -= level
 
+    def parse_annotation(self, annotation: str):
+        params = {'array_sizes': []}
+        parts = annotation.split('_')
+        while parts and parts[-1].isdigit():  # TODO:   убедиться, что метод возвращает Истину лишь для арабских цифр
+            params['array_sizes'].append(parts.pop())
+
+        if parts and parts[-1] == 'dynamic':
+            parts.pop()
+            params['array_sizes'].append('')
+
+        #if parts and parts[-1] in ('int', 'char'):  # TODO: Перечислить нормальные типы и вынести их в константу
+        if parts:
+            params['type'] = parts.pop()
+        else:
+            raise SourceCodeException('Annotation should have type', self.transit_data['parents'][-1])
+
+        # if 'static' in parts:
+        # if 'const' in parts:
+        # if 'eeprom' in parts:
+
+        return Annotation(**params)
+
     def process_init_variable(self, name, value_expr, value_lambda, annotation: Optional[str]):
-        if annotation == 'preproc':
+        annotation = self.parse_annotation(annotation)
+        if annotation.type == 'preproc':
             self.write(f'#define ')
             self.walk(name)
             if value_expr:
@@ -78,8 +112,11 @@ class CConverter:
 
             self.write('\n')
         else:
-            self.write(f'{self.ident}{annotation} ')
+            self.write(f'{self.ident}{annotation.type} ')
             self.walk(name)
+            for array_size in annotation.array_sizes:
+                self.write(f'[{array_size}]')
+
             if value_expr:
                 self.write(' = ')
                 self.walk(value_expr)
@@ -305,6 +342,15 @@ class CConverter:
         self.write('[')
         self.walk(index)
         self.write(']')
+
+    def process_array(self, elements):
+        self.write('{')
+        for index, element in enumerate(elements, 1):
+            self.walk(element)
+            if index < len(elements):
+                self.write(', ')
+
+        self.write('}')
 
 
 def convert_op(node):
@@ -633,11 +679,15 @@ def walk(converter, node):
     # Subscripting
     elif isinstance(node, ast.Subscript):
         index = None
-        if isinstance(node.slice, ast.Index): # ast.Index is for Python <=3.8;
+        if isinstance(node.slice, ast.Index):  # ast.Index is for Python <=3.8;
             node.slice.custom_ignore = True
             index = node.slice.value
-        elif isinstance(node.slice, ast.Constant): # ast.Constant is for Python >= 3.9
+        elif isinstance(node.slice, ast.Constant):  # ast.Constant is for Python >= 3.9
             index = node.slice
+        elif isinstance(node.slice, ast.Name):  # ast.Constant is for Python >= 3.9
+            index = node.slice
+        else:
+            raise SourceCodeException('Unknown index node', node.slice)
 
         converter.process_subscript(node.value, index)
 
@@ -651,6 +701,10 @@ def walk(converter, node):
 
     # elif isinstance(node, ast.Interactive):
     # elif isinstance(node, ast.Expression):
+
+    # Literals
+    elif isinstance(node, ast.List):
+        converter.process_array(node.elts)
 
     else:
         raise SourceCodeException(f'unknown node: {node.__class__.__name__}', node)

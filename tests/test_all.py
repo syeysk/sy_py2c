@@ -418,6 +418,15 @@ class ArraysTestCase(Py2CTestCase):
         result_code = 'variable1 = variable2[variable3];\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_array_init_static_one_depth(self):
+        source_code = 'variable: int_3 = [5, 10, 15]'
+        result_code = 'int variable[3] = {5, 10, 15};\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_array_init_dynamic_one_depth(self):
+        source_code = 'variable: int_dynamic = [5, 10, 15]'
+        result_code = 'int variable[] = {5, 10, 15};\n'
+        self.assertSuccess(source_code, result_code)
 
 # class LambdaTestCase(Py2CTestCase):
 #     def test_lambda(self):
