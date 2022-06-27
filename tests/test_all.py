@@ -400,10 +400,15 @@ class CommentTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
 
-class LinksTestCase(Py2CTestCase):
-    def test_link(self):
+class PointerTestCase(Py2CTestCase):
+    def test_pointer_using(self):
         source_code = 'function(variable.link)'
         result_code = 'function(&variable);\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_pointer_initing(self):
+        source_code = 'variable: int_link'
+        result_code = 'int *variable;\n'
         self.assertSuccess(source_code, result_code)
 
 
@@ -423,9 +428,14 @@ class ArraysTestCase(Py2CTestCase):
         result_code = 'int variable[3] = {5, 10, 15};\n'
         self.assertSuccess(source_code, result_code)
 
-    def test_array_init_dynamic_one_depth(self):
-        source_code = 'variable: int_dynamic = [5, 10, 15]'
+    def test_array_init_static_one_depth_autosize(self):
+        source_code = 'variable: int_auto = [5, 10, 15]'
         result_code = 'int variable[] = {5, 10, 15};\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_array_init_static_one_depth_pointer(self):
+        source_code = 'variable: int_link_4 = [5, 10, 15, 20]'
+        result_code = 'int *variable[4] = {5, 10, 15, 20};\n'
         self.assertSuccess(source_code, result_code)
 
 # class LambdaTestCase(Py2CTestCase):

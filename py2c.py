@@ -1,5 +1,5 @@
 import ast
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
 
 
@@ -35,7 +35,8 @@ class TranslateAlgorythmException(Exception):
 @dataclass
 class Annotation:
     type: str
-    array_sizes: Optional[str] = None
+    array_sizes: List[str] = field(default_factory=list)
+    link: bool = False
 
 
 class CConverter:
@@ -79,9 +80,13 @@ class CConverter:
         while parts and parts[-1].isdigit():  # TODO:   убедиться, что метод возвращает Истину лишь для арабских цифр
             params['array_sizes'].append(parts.pop())
 
-        if parts and parts[-1] == 'dynamic':
+        if parts and parts[-1] == 'auto':
             parts.pop()
             params['array_sizes'].append('')
+
+        if parts and parts[-1] == 'link':
+            parts.pop()
+            params['link'] = True
 
         #if parts and parts[-1] in ('int', 'char'):  # TODO: Перечислить нормальные типы и вынести их в константу
         if parts:
@@ -113,6 +118,9 @@ class CConverter:
             self.write('\n')
         else:
             self.write(f'{self.ident}{annotation.type} ')
+            if annotation.link:
+                self.write('*')
+
             self.walk(name)
             for array_size in annotation.array_sizes:
                 self.write(f'[{array_size}]')
