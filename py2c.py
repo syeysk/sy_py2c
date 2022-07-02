@@ -364,6 +364,28 @@ class CConverter:
 
         self.write('}')
 
+    def process_for_function(self, name, body, function_name, args):
+        self.write(f'{self.ident}for ({name}=')
+        if len(args) >= 2:
+            self.walk(args[0])
+        else:
+            self.write('0')
+
+        self.write(f'; {name}<')
+
+        if len(args) == 1:
+            self.walk(args[0])
+        elif len(args) >= 2:
+            self.walk(args[1])
+        else:
+            raise Exception('Unsupported count of arguments for `range`')
+
+        self.write(f'; {name}++) {{\n')
+        for expression in body:
+            self.walk(expression, 1)
+
+        self.write(f'{self.ident}}}\n\n')
+
 
 def convert_op(node):
     node.custom_ignore = True
@@ -381,10 +403,10 @@ def convert_op(node):
         return '%'
     # elif isinstance(node, ast.Pow):
     #    return ''
-    # elif isinstance(node, ast.RShift):
-    #    return ''
-    # elif isinstance(node, ast.LShift):
-    #    return ''
+    elif isinstance(node, ast.RShift):
+        return '>>'
+    elif isinstance(node, ast.LShift):
+        return '<<'
     elif isinstance(node, ast.BitOr):
         return '|'
     elif isinstance(node, ast.BitXor):
@@ -619,6 +641,8 @@ def walk(converter, node):
             is_need_brackets=is_need_brackets,
         )
 
+    # Control flow
+
     elif isinstance(node, ast.If):
         ifelses = []
         orelse = node.orelse
@@ -633,6 +657,17 @@ def walk(converter, node):
             ifelses=ifelses,
             orelse=orelse,
         )
+
+    elif isinstance(node, ast.For):
+        if isinstance(node.target, ast.Name):
+            name = node.target.id
+        else:
+            raise Exception('Unsupported target of `for`!')
+
+        if isinstance(node.iter, ast.Call):
+            converter.process_for_function(name, node.body, node.iter.func.id, node.iter.args)
+        else:
+            raise Exception('Unsupported iter of `for`!')
 
     elif isinstance(node, ast.While):
         has_while_orelse.append(bool(node.orelse))

@@ -466,6 +466,13 @@ class BooleanTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
 
+class ForTestCase(Py2CTestCase):
+    def test_for(self):
+        source_code = 'for j in range(0, 5): pass'
+        result_code = 'for (j=0; j<5; j++) {\n}\n\n'
+        self.assertSuccess(source_code, result_code)
+
+
 # class LambdaTestCase(Py2CTestCase):
 #     def test_lambda(self):
 #         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию
