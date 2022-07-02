@@ -244,7 +244,7 @@ class CConverter:
 
             self.write(f'{self.ident}}}\n\n')
 
-    def process_import_from(self, module_name, imported_objects: List[Tuple[str]]):
+    def process_import_from(self, module_name, imported_objects: List[Tuple[str]], level: int):
         if len(imported_objects) > 1 or imported_objects[0][0] != '*':
             raise UnsupportedImportException(
                 'This import is not supported. Use `from module_name import *`',
@@ -252,7 +252,11 @@ class CConverter:
             )
 
         module_name = module_name.replace('.', '/')
-        self.write(f'#include <{module_name}.h>\n\n')
+        if level == 0:
+            self.write(f'#include <{module_name}.h>\n\n')
+        else:
+            parent_path = './' if level == 1 else '../'*(level-1)
+            self.write(f'#include "{parent_path}{module_name}.h"\n\n')
 
     def process_import(self, module_names):
         raise UnsupportedImportException(
@@ -670,7 +674,7 @@ def walk(converter, node):
 
     elif isinstance(node, ast.ImportFrom):
         names = [(alias.name, alias.asname) for alias in node.names]
-        converter.process_import_from(node.module, names)
+        converter.process_import_from(node.module, names, node.level)
 
     elif isinstance(node, ast.Compare):
         converter.process_compare(node.left, [convert_compare_op(op) for op in node.ops], node.comparators)
