@@ -407,7 +407,7 @@ class PointerTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
     def test_pointer_initing(self):
-        source_code = 'variable: int_link'
+        source_code = 'variable: int__link'
         result_code = 'int *variable;\n'
         self.assertSuccess(source_code, result_code)
 
@@ -424,19 +424,32 @@ class ArraysTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth(self):
-        source_code = 'variable: int_3 = [5, 10, 15]'
+        source_code = 'variable: int__3 = [5, 10, 15]'
         result_code = 'int variable[3] = {5, 10, 15};\n'
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth_autosize(self):
-        source_code = 'variable: int_auto = [5, 10, 15]'
+        source_code = 'variable: int__auto = [5, 10, 15]'
         result_code = 'int variable[] = {5, 10, 15};\n'
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth_pointer(self):
-        source_code = 'variable: int_link_4 = [5, 10, 15, 20]'
+        source_code = 'variable: int__link__4 = [5, 10, 15, 20]'
         result_code = 'int *variable[4] = {5, 10, 15, 20};\n'
         self.assertSuccess(source_code, result_code)
+
+
+class BooleanTestCase(Py2CTestCase):
+    def test_false(self):
+        source_code = 'variable = False'
+        result_code = 'variable = 0;\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_true(self):
+        source_code = 'while True: pass'
+        result_code = 'while (1) {\n}\n\n'
+        self.assertSuccess(source_code, result_code)
+
 
 # class LambdaTestCase(Py2CTestCase):
 #     def test_lambda(self):

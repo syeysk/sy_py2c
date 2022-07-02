@@ -76,7 +76,7 @@ class CConverter:
 
     def parse_annotation(self, annotation: str):
         params = {'array_sizes': []}
-        parts = annotation.split('_')
+        parts = annotation.split('__')
         while parts and parts[-1].isdigit():  # TODO:   убедиться, что метод возвращает Истину лишь для арабских цифр
             params['array_sizes'].append(parts.pop())
 
@@ -601,7 +601,10 @@ def walk(converter, node):
         )
 
     elif isinstance(node, ast.NameConstant):  # New in version 3.4; Deprecated since version 3.8
-        walk(converter, node.value)
+        if isinstance(node.value, bool):
+            converter.process_constant(node.value, node)
+        else:
+            walk(converter, node.value)
 
     elif isinstance(node, ast.IfExp):
         is_need_brackets = isinstance(parent_node, (ast.Call, ast.BoolOp))
