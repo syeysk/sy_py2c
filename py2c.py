@@ -69,7 +69,7 @@ class CConverter:
     def parent_node(self):
         return self.transit_data['parents'][-1]
 
-    def walk(self, node, level=0):
+    def walk(self, node, level: int = 0):
         self.level += level
         self._walk(self, node)
         self.level -= level
@@ -181,12 +181,16 @@ class CConverter:
 
         self.write('}\n')
 
+        return_expr = '' if annotation == 'void' else 'return '
+
         for index_default_arg in range(1, len(pos_args_defaults)+1):
             self.write(f'{self.ident}{annotation} {name}(')
             str_args = [f'{annotation_arg} {name_arg}' for annotation_arg, name_arg in pos_args[:-index_default_arg]]
             self.write(', '.join(str_args) if pos_args else 'void')
             self.write(') {\n')
-            self.write(f'{self.ident}{name}(')
+            self.level += 1
+            self.write(f'{self.ident}{return_expr}{name}(')
+            self.level -= 1
             for annotation_arg, name_arg in pos_args[:-index_default_arg]:
                 self.write(f'{name_arg}, ')
 
