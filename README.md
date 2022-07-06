@@ -1,6 +1,4 @@
-# tool_py2c_translator
-
-Translator Python source into C.
+# Translator from Python into C 
 
 Поддерживаются следующие операции:
 - присваивание переменным константных значений: целые положительные числа и строки.
@@ -17,37 +15,23 @@ Translator Python source into C.
 # ROADMAP
 
 ## Add dataset for:
-- [ ] initing difficult vars: generative lists, dicts, multi-ifs
+- [ ] initing difficult vars: generative lists, dicts
 - [ ] initing vars with dict (structure in C), list (arrays in C), tupple and set.
-- [ ] conditions and cycles: if-elif-else, while-else, for, switch
-- [ ] functions: without args and return, with args and one return, with multi-return, with default args.
-- [ ] imports and standart c-library
+- [ ] conditions and cycles: for, switch
+- [ ] functions: with multi-return.
 - [ ] c-pointers
 - [ ] collecting vars and placing their initing into start of program/function
-- [ ] using constants - all uppercase vars will be recognise like c-constant: `VARIABLE = 67` -> `const variable = 67;` or `#def VARIABLE 67`
 
 ## Other
 
-- [ ] Write tests for datasets
-- [ ] Realise supporting all code in dataset
 - [ ] Add online-compilation by GCC on server
 - [ ] Add modules for calculating registers of microcontrollers (AVR, STM8). It will be a class with some properties: cpu-frequrence, settings of i2c, input/output and other
 - [ ] Set package manager (poetry)
 - [ ] Set allowed modules for import: math, microcontrollers.
-- [x] Replace highlighter by CodeMirror.
 - [ ] Arithmetic priory
 - [ ] Brackets
 
-## Add dataset with mistake code:
-
-- [ ] vars without annotations
-- [ ] trying to changing annotation or assigning value with another type
-
-
 ## Tests
-- [ ] tests of variables and operators
-- [ ] tests of constructions
-- [ ] tests of functions
 - [ ] tests of simple programs with different features
 
 ## Standarts of C
