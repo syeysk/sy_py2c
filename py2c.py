@@ -157,7 +157,15 @@ class CConverter:
     def process_oneline_comment(self, comment):
         self.write(f'{self.ident}// {comment}\n')
 
-    def process_def_function(self, name, annotation: Optional[str], pos_args, body, docstring_comment):
+    def process_def_function(
+            self,
+            name: str,
+            annotation: Optional[str],
+            pos_args: Tuple[str],
+            pos_args_defaults,
+            body,
+            docstring_comment: str
+    ):
         if annotation is None:
             annotation = 'void'
 
@@ -172,6 +180,24 @@ class CConverter:
             self.walk(expression, 1)
 
         self.write('}\n')
+
+        for index_default_arg in range(1, len(pos_args_defaults)+1):
+            self.write(f'{self.ident}{annotation} {name}(')
+            str_args = [f'{annotation_arg} {name_arg}' for annotation_arg, name_arg in pos_args[:-index_default_arg]]
+            self.write(', '.join(str_args) if pos_args else 'void')
+            self.write(') {\n')
+            self.write(f'{self.ident}{name}(')
+            for annotation_arg, name_arg in pos_args[:-index_default_arg]:
+                self.write(f'{name_arg}, ')
+
+            for index_pos_arg_default, pos_arg_default in enumerate(pos_args_defaults[-index_default_arg:]):
+                pos_arg_default.custom_ignore = False
+                self.walk(pos_arg_default)
+                if index_pos_arg_default < len(pos_args_defaults[-index_default_arg:]) - 1:
+                    self.write(', ')
+
+            self.write(');\n')
+            self.write('}\n')
 
     def process_call_function(self, name, pos_args):
         self.walk(name)
@@ -552,9 +578,15 @@ def walk(converter, node):
 
     elif isinstance(node, ast.FunctionDef):
         pos_args = []
-        for arg in node.args.args:  # node.args is ast.arguments
+        # count_nondefault_args = len(node.args.args) - len(node.args.defaults)
+        for index_arg, arg in enumerate(node.args.args):  # node.args is ast.arguments
             ann_name = convert_annotation(arg.annotation, node)
-            pos_args.append((ann_name, arg.arg))
+            pos_arg = (ann_name, arg.arg)
+            # if node.args.defaults and index_arg >= count_nondefault_args:
+            #     index_default_arg = -len(node.args.defaults) + index_arg - count_nondefault_args
+            #     pos_arg = (ann_name, arg.arg, node.args.defaults[index_default_arg])
+
+            pos_args.append(pos_arg)
 
         docstring_comment = ast.get_docstring(node)
         if docstring_comment is not None:
@@ -565,6 +597,7 @@ def walk(converter, node):
             name=node.name,
             annotation=convert_annotation(node.returns, node),
             pos_args=pos_args,
+            pos_args_defaults=node.args.defaults,
             body=node.body,
             docstring_comment=docstring_comment,
         )

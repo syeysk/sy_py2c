@@ -197,6 +197,43 @@ class FunctionTestCase(Py2CTestCase):
         result_code = 'void function(void) {\n    return;\n}\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_function_with_one_default_ars(self):
+        source_code = (
+            'def function(arg1: float, arg2: char, arg3: int = 10) -> int:\n'
+            '    a: int = 5\n'
+            '    return a + arg1'
+        )
+        result_code = (
+            'int function(float arg1, char arg2, int arg3) {\n'
+            '    int a = 5;\n'
+            '    return a + arg1;\n'
+            '}\n'
+            'int function(float arg1, char arg2) {\n'
+            'function(arg1, arg2, 10);\n'
+            '}\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_function_with_default_ars(self):
+        source_code = (
+            'def function(arg1: float, arg2: char, arg3: int = 10, arg4: int = 55) -> int:\n'
+            '    a: int = 5\n'
+            '    return a + arg1'
+        )
+        result_code = (
+            'int function(float arg1, char arg2, int arg3, int arg4) {\n'
+            '    int a = 5;\n'
+            '    return a + arg1;\n'
+            '}\n'
+            'int function(float arg1, char arg2, int arg3) {\n'
+            'function(arg1, arg2, arg3, 55);\n'
+            '}\n'
+            'int function(float arg1, char arg2) {\n'
+            'function(arg1, arg2, 10, 55);\n'
+            '}\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
     def test_calling_function(self):
         source_code = 'function(arg1, 1)'
         result_code = 'function(arg1, 1);\n'
