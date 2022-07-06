@@ -66,7 +66,7 @@ class CConverter:
         return '    ' * self.level
 
     @property
-    def parent_node(self):  # TODO: внедрить данное свойство
+    def parent_node(self):
         return self.transit_data['parents'][-1]
 
     def walk(self, node, level=0):
@@ -92,7 +92,7 @@ class CConverter:
         if parts:
             params['type'] = parts.pop()
         else:
-            raise SourceCodeException('Annotation should have type', self.transit_data['parents'][-1])
+            raise SourceCodeException('Annotation should have type', self.parent_node)
 
         # if 'static' in parts:
         # if 'const' in parts:
@@ -113,7 +113,7 @@ class CConverter:
                 self.write('({}) '.format(','.join(args)))
                 self.walk(body)
             else:
-                raise SourceCodeException('The constant must have a value', self.transit_data['parents'][-1])
+                raise SourceCodeException('The constant must have a value', self.parent_node)
 
             self.write('\n')
         else:
@@ -274,7 +274,7 @@ class CConverter:
         if len(imported_objects) > 1 or imported_objects[0][0] != '*':
             raise UnsupportedImportException(
                 'This import is not supported. Use `from module_name import *`',
-                self.transit_data['parents'][-1],
+                self.parent_node,
             )
 
         module_name = module_name.replace('.', '/')
@@ -287,7 +287,7 @@ class CConverter:
     def process_import(self, module_names):
         raise UnsupportedImportException(
             'This import is not supported. Use `from module_name import *`',
-            self.transit_data['parents'][-1],
+            self.parent_node,
         )
         # for module_name in module_names:
         #     module_name = module_name.replace('.', '/')
