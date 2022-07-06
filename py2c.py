@@ -578,14 +578,9 @@ def walk(converter, node):
 
     elif isinstance(node, ast.FunctionDef):
         pos_args = []
-        # count_nondefault_args = len(node.args.args) - len(node.args.defaults)
         for index_arg, arg in enumerate(node.args.args):  # node.args is ast.arguments
             ann_name = convert_annotation(arg.annotation, node)
             pos_arg = (ann_name, arg.arg)
-            # if node.args.defaults and index_arg >= count_nondefault_args:
-            #     index_default_arg = -len(node.args.defaults) + index_arg - count_nondefault_args
-            #     pos_arg = (ann_name, arg.arg, node.args.defaults[index_default_arg])
-
             pos_args.append(pos_arg)
 
         docstring_comment = ast.get_docstring(node)
