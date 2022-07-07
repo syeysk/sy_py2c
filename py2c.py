@@ -799,15 +799,3 @@ def main(converter, source_code):
     converter._walk = walk
     tree = ast.parse(source_code)
     walk(converter, tree)
-
-
-if __name__ == '__main__':
-    import os
-
-    with open('example/example.py') as example_py_file:
-        source_code = example_py_file.read()
-
-    with open('example.c', 'w') as example_c_file:
-        converter = CConverter(save_to=example_c_file)
-        main(converter, source_code)
-
