@@ -1,27 +1,12 @@
-from io import StringIO
-from unittest import TestCase
+import unittest
 
 from py2c import (
-    CConverter,
-    main,
     InvalidAnnotationException,
     LambdaIsNotAllowedHereException,
     NoneIsNotAllowedException,
     UnsupportedImportException,
 )
-
-
-class Py2CTestCase(TestCase):
-    def setUp(self):
-        self.file_stdout = StringIO()
-        self.converter = CConverter(save_to=self.file_stdout)
-
-    def assertSuccess(self, source_code, result_code):
-        main(self.converter, source_code)
-        self.assertEqual(self.file_stdout.getvalue(), result_code)
-
-    def assertBad(self, source_code, exception):
-        self.assertRaises(exception, main, self.converter, source_code)
+from tests.py2c_test_case import Py2CTestCase
 
 
 class OperatorsAndVariablesTestCase(Py2CTestCase):
@@ -535,3 +520,7 @@ class ForTestCase(Py2CTestCase):
 #         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию
 #         source_code = "variable1: int = lambda x, y: x + y"
 #         self.assertBad(source_code, LambdaIsNotAllowedHereException)
+
+
+if __name__ == '__main__':
+    unittest.main()

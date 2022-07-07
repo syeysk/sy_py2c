@@ -811,13 +811,3 @@ if __name__ == '__main__':
         converter = CConverter(save_to=example_c_file)
         main(converter, source_code)
 
-    path_example_from_book = 'example/from_book/'
-    for filepath in os.listdir(path_example_from_book):
-        print()
-        print(filepath)
-        with open(os.path.join(path_example_from_book, filepath)) as example_py_file:
-            source_code = example_py_file.read()
-
-        with open(f'{filepath}.c', 'w') as example_c_file:
-            converter = CConverter(save_to=example_c_file)
-            main(converter, source_code)
