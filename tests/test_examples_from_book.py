@@ -1,3 +1,5 @@
+"""Testing examples from the book Белов А. В. "Разработка устройств на микроконтроллерах" """
+
 import unittest
 
 from tests.py2c_test_case import Py2CTestCase
