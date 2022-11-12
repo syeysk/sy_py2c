@@ -515,6 +515,25 @@ class ForTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
 
+class ReturningSeveralValuesTestCase(Py2CTestCase):
+    def test_several_values(self):
+        source_code = (
+            'def function() -> int:\n'
+            '    value1: int = 5\n'
+            '    value2: char = "k"\n'
+            '    return value1, value2'
+        )
+        result_code = (
+            'int function(void) {\n'
+            '    int value1 = 5;\n'
+            '    char value2 = "k";\n'
+            '    struct function_mys _function_mys = {value1, value2};\n'
+            '    return _function_mys;\n'
+            '}\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+
 # class LambdaTestCase(Py2CTestCase):
 #     def test_lambda(self):
 #         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию

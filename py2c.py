@@ -49,6 +49,7 @@ class CConverter:
         self.lineno = None
         self._walk = None
         self.transit_data = {}
+        self.current_function_names = []
 
     def write(self, data: str):
         self.save_to.write(data)
@@ -69,10 +70,19 @@ class CConverter:
     def parent_node(self):
         return self.transit_data['parents'][-1]
 
-    def walk(self, node, level: int = 0):
+    @property
+    def current_function_name(self):
+        return self.current_function_names[-1]
+
+    def walk(self, node, level: int = 0, current_function_name: str = None):
+        if current_function_name:
+            self.current_function_names.append(current_function_name)
+
         self.level += level
         self._walk(self, node)
         self.level -= level
+        if current_function_name:
+            self.current_function_names.pop()
 
     def parse_annotation(self, annotation: str):
         params = {'array_sizes': []}
@@ -90,7 +100,7 @@ class CConverter:
 
         #if parts and parts[-1] in ('int', 'char'):  # TODO: Перечислить нормальные типы и вынести их в константу
         if parts:
-            params['type'] = parts.pop()
+            params['type'] = ' '.join(parts)
         else:
             raise SourceCodeException('Annotation should have type', self.parent_node)
 
@@ -100,7 +110,7 @@ class CConverter:
 
         return Annotation(**params)
 
-    def process_init_variable(self, name, value_expr, value_lambda, annotation: Optional[str]):
+    def process_init_variable(self, name, value_expr, annotation: Optional[str], value_lambda=None):
         annotation = self.parse_annotation(annotation)
         if annotation.type == 'preproc':
             self.write(f'#define ')
@@ -121,7 +131,7 @@ class CConverter:
             if annotation.link:
                 self.write('*')
 
-            self.walk(name)
+            self.write(name) if isinstance(name, str) else self.walk(name)
             for array_size in annotation.array_sizes:
                 self.write(f'[{array_size}]')
 
@@ -177,7 +187,7 @@ class CConverter:
         self.write(', '.join(str_args) if pos_args else 'void')
         self.write(') {\n')
         for expression in body:
-            self.walk(expression, 1)
+            self.walk(expression, 1, current_function_name=name)
 
         self.write('}\n')
 
@@ -254,6 +264,15 @@ class CConverter:
             self.walk(expression)
 
         self.write(';\n')
+
+    def process_multi_return(self, expressions):
+        # TODO: Добавить аргументов к струткуре
+        # TODO: Объявление структуры
+        # TODO: Изменить аннотацию типа функции (struct function_mys)
+        structure_name = f'{self.current_function_name}_mys'
+        variable_name = f'_{structure_name}'
+        self.process_init_variable(name=variable_name, value_expr=expressions, annotation=f'struct__{structure_name}')
+        self.write(f'{self.ident}return {variable_name};\n')
 
     def process_while(self, condition, body, orelse):
         if orelse:
@@ -558,8 +577,8 @@ def walk(converter, node):
         converter.process_init_variable(
             name=node.target,
             value_expr=value_expr,
-            value_lambda=value_lambda,
             annotation=convert_annotation(node.annotation, node),
+            value_lambda=value_lambda,
         )
 
     elif isinstance(node, ast.Assign):
@@ -653,10 +672,10 @@ def walk(converter, node):
         )
 
     elif isinstance(node, ast.Return):
-        # if node.value:
-        converter.process_return(
-            expression=node.value,
-        )
+        if isinstance(node.value, ast.Tuple):
+            converter.process_multi_return(expressions=node.value)
+        else:
+            converter.process_return(expression=node.value)
 
     elif isinstance(node, ast.NameConstant):  # New in version 3.4; Deprecated since version 3.8
         if isinstance(node.value, bool):
@@ -787,6 +806,13 @@ def walk(converter, node):
     # Literals
     elif isinstance(node, ast.List):
         converter.process_array(node.elts)
+
+    elif isinstance(node, ast.Tuple):
+        converter.process_array(node.elts)
+    #     if isinstance(parent_node, ast.Return):
+    #         converter.process_multi_return(expressions=node.elts)
+    #     else:
+    #         raise SourceCodeException(f'unknown node: {node.__class__.__name__}', node)
 
     else:
         raise SourceCodeException(f'unknown node: {node.__class__.__name__}', node)
