@@ -51,8 +51,12 @@ class CConverter:
         self.transit_data = {}
         self.current_function_names = []
 
+        self.raw_strings = []
+        self.raw_imports = []
+
     def write(self, data: str):
-        self.save_to.write(data)
+        # self.save_to.write(data)
+        self.raw_strings.append(data)
 
     def write_lbracket(self, is_need_brackets):
         if is_need_brackets:
@@ -61,6 +65,14 @@ class CConverter:
     def write_rbracket(self, is_need_brackets):
         if is_need_brackets:
             self.write(')')
+
+    def save(self):
+        str_imports = '\n'.join(self.raw_imports)
+        if str_imports:
+            self.save_to.write(str_imports)
+            self.save_to.write('\n\n')
+
+        self.save_to.write(''.join(self.raw_strings))
 
     @property
     def ident(self):
@@ -253,6 +265,19 @@ class CConverter:
         self.walk(operand_right)
         self.write_rbracket(is_need_brackets)
 
+    def process_binary_op_pow(self, operand_left, operand_right, is_need_brackets):
+        module_name = 'cmath'
+        self.raw_imports.append(f'#include <{module_name}>')
+        self.write_lbracket(is_need_brackets)
+        self.write(f'pow(')
+        self.walk(operand_left)
+        self.write(f', ')
+        self.walk(operand_right)
+        self.write(f')')
+        self.write_rbracket(is_need_brackets)
+        # if not is_need_brackets:
+        #     self.write(f';')
+
     def process_unary_op(self, operand, operator):
         self.write(f'{operator}')
         self.walk(operand)
@@ -302,10 +327,10 @@ class CConverter:
 
         module_name = module_name.replace('.', '/')
         if level == 0:
-            self.write(f'#include <{module_name}.h>\n\n')
+            self.raw_imports.append(f'#include <{module_name}.h>')
         else:
             parent_path = './' if level == 1 else '../'*(level-1)
-            self.write(f'#include "{parent_path}{module_name}.h"\n\n')
+            self.raw_imports.append(f'#include "{parent_path}{module_name}.h"')
 
     def process_import(self, module_names):
         raise UnsupportedImportException(
@@ -651,12 +676,19 @@ def walk(converter, node):
 
     elif isinstance(node, ast.BinOp):
         is_need_brackets = isinstance(parent_node, (ast.BinOp, ast.BoolOp, ast.UnaryOp))
-        converter.process_binary_op(
-            operand_left=node.left,
-            operator=convert_op(node.op),
-            operand_right=node.right,
-            is_need_brackets=is_need_brackets,
-        )
+        if isinstance(node.op, ast.Pow):
+            converter.process_binary_op_pow(
+                operand_left=node.left,
+                operand_right=node.right,
+                is_need_brackets=is_need_brackets,
+            )
+        else:
+            converter.process_binary_op(
+                operand_left=node.left,
+                operator=convert_op(node.op),
+                operand_right=node.right,
+                is_need_brackets=is_need_brackets,
+            )
 
     elif isinstance(node, ast.BoolOp):
         converter.process_bool_op(
@@ -825,3 +857,4 @@ def main(converter, source_code):
     converter._walk = walk
     tree = ast.parse(source_code)
     walk(converter, tree)
+    converter.save()

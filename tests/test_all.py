@@ -137,7 +137,7 @@ class ImportTestCase(Py2CTestCase):
 
     def test_allowed_multiline_import(self):
         source_code = 'from module1 import *\nfrom module2 import *'
-        result_code = '#include <module1.h>\n\n#include <module2.h>\n\n'  # TODO: один перенос между импортами
+        result_code = '#include <module1.h>\n#include <module2.h>\n\n'
         self.assertSuccess(source_code, result_code)
 
     def test_allowed_import_not_from_std(self):
@@ -530,6 +530,34 @@ class ReturningSeveralValuesTestCase(Py2CTestCase):
             '    struct function_mys _function_mys = {value1, value2};\n'
             '    return _function_mys;\n'
             '}\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+
+class PowTestCase(Py2CTestCase):
+    def test_pow(self):
+        source_code = (
+            'a: int = a ** b'
+        )
+        result_code = (
+            '#include <cmath>\n\n'
+            'int a = pow(a, b);\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_pow_with_imports(self):
+        source_code = (
+            'from module1 import *\n'
+            'a: int = 10\n'
+            'b: int = 3\n'
+            'c: int = a ** b'
+        )
+        result_code = (
+            '#include <module1.h>\n'
+            '#include <cmath>\n\n'
+            'int a = 10;\n'
+            'int b = 3;\n'
+            'int c = pow(a, b);\n'
         )
         self.assertSuccess(source_code, result_code)
 
