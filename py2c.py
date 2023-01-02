@@ -382,11 +382,14 @@ class CConverter:
             self.write(f' {operator} ')
             self.walk(operand_right)
 
-    def process_bool_op(self, operand_left, operator, operands_right):
+    def process_bool_op(self, operand_left, operator, operands_right, is_need_brackets):
+        self.write_lbracket(is_need_brackets)
         self.walk(operand_left)
-        self.write(f' {operator} ')
         for operand_right in operands_right:
+            self.write(f' {operator} ')
             self.walk(operand_right)
+
+        self.write_rbracket(is_need_brackets)
 
     def process_break(self, has_while_orelse):
         if has_while_orelse:
@@ -675,7 +678,7 @@ def walk(converter, node):
         converter.process_delete_variable(names)
 
     elif isinstance(node, ast.BinOp):
-        is_need_brackets = isinstance(parent_node, (ast.BinOp, ast.BoolOp, ast.UnaryOp))
+        is_need_brackets = isinstance(parent_node, (ast.BinOp, ast.UnaryOp))
         if isinstance(node.op, ast.Pow):
             converter.process_binary_op_pow(
                 operand_left=node.left,
@@ -691,10 +694,12 @@ def walk(converter, node):
             )
 
     elif isinstance(node, ast.BoolOp):
+        is_need_brackets = isinstance(parent_node, (ast.BoolOp, ast.UnaryOp))
         converter.process_bool_op(
             operand_left=node.values[0],
             operator=convert_bool_op(node.op),
             operands_right=node.values[1:],
+            is_need_brackets=is_need_brackets,
         )
 
     elif isinstance(node, ast.UnaryOp):

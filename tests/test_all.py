@@ -507,6 +507,30 @@ class BooleanTestCase(Py2CTestCase):
         result_code = 'while (1) {\n}\n\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_bool_sequence(self):
+        source_code = (
+            'if y + 2 * x < a or x > 30 or y > 20:\n'
+            '    k += 1'
+        )
+        result_code = (
+            'if (y + (2 * x) < a || x > 30 || y > 20) {\n'
+            '    k += 1;\n'
+            '}\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
+    def test_bool_sequence_with_parent(self):
+        source_code = (
+            'if (y + 2 and x < a) or x > 30 or y > 20:\n'
+            '    k += 1'
+        )
+        result_code = (
+            'if ((y + 2 && x < a) || x > 30 || y > 20) {\n'
+            '    k += 1;\n'
+            '}\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
+
 
 class ForTestCase(Py2CTestCase):
     def test_for(self):
