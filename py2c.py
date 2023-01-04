@@ -52,7 +52,7 @@ class CConverter:
         self.current_function_names = []
 
         self.raw_strings = []
-        self.raw_imports = []
+        self.raw_imports = set()
 
     def write(self, data: str):
         # self.save_to.write(data)
@@ -67,7 +67,9 @@ class CConverter:
             self.write(')')
 
     def save(self):
-        str_imports = '\n'.join(self.raw_imports)
+        raw_imports = list(self.raw_imports)
+        raw_imports.sort()
+        str_imports = '\n'.join(raw_imports)
         if str_imports:
             self.save_to.write(str_imports)
             self.save_to.write('\n\n')
@@ -267,7 +269,7 @@ class CConverter:
 
     def process_binary_op_pow(self, operand_left, operand_right, is_need_brackets):
         module_name = 'cmath'
-        self.raw_imports.append(f'#include <{module_name}>')
+        self.raw_imports.add(f'#include <{module_name}>')
         self.write_lbracket(is_need_brackets)
         self.write(f'pow(')
         self.walk(operand_left)
@@ -327,10 +329,10 @@ class CConverter:
 
         module_name = module_name.replace('.', '/')
         if level == 0:
-            self.raw_imports.append(f'#include <{module_name}.h>')
+            self.raw_imports.add(f'#include <{module_name}.h>')
         else:
             parent_path = './' if level == 1 else '../'*(level-1)
-            self.raw_imports.append(f'#include "{parent_path}{module_name}.h"')
+            self.raw_imports.add(f'#include "{parent_path}{module_name}.h"')
 
     def process_import(self, module_names):
         raise UnsupportedImportException(

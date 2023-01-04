@@ -577,8 +577,8 @@ class PowTestCase(Py2CTestCase):
             'c: int = a ** b'
         )
         result_code = (
-            '#include <module1.h>\n'
-            '#include <cmath>\n\n'
+            '#include <cmath>\n'
+            '#include <module1.h>\n\n'
             'int a = 10;\n'
             'int b = 3;\n'
             'int c = pow(a, b);\n'
