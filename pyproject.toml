@@ -8,8 +8,5 @@ authors = [
 dependencies = [
 ]
 
-requirements = [
-]
-
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "wheel"]
