@@ -1,5 +1,5 @@
 import ast
-from dataclasses import dataclass, field
+from sys import version_info
 from typing import Optional, List, Tuple
 
 
@@ -32,11 +32,23 @@ class TranslateAlgorythmException(Exception):
     pass
 
 
-@dataclass
-class Annotation:
-    type: str
-    array_sizes: List[str] = field(default_factory=list)
-    link: bool = False
+if version_info.minor < 7:
+    from dataclasses import dataclass, field
+
+    @dataclass
+    class Annotation:
+        type: str
+        array_sizes: List[str] = field(default_factory=list)
+        link: bool = False
+else:
+    class Annotation:
+        type: str
+        array_sizes = None
+        link = False
+
+        def __init__(self, **kwargs):
+            for n, v in kwargs.items():
+                setattr(self, n, v)
 
 
 class CConverter:
