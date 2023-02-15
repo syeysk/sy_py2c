@@ -1,7 +1,7 @@
 from io import StringIO
 from unittest import TestCase
 
-from py2c import CConverter, main
+from py2c.py2c import CConverter, main
 
 
 class Py2CTestCase(TestCase):

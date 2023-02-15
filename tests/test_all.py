@@ -1,8 +1,7 @@
 import unittest
 
-from py2c import (
+from py2c.py2c import (
     InvalidAnnotationException,
-    LambdaIsNotAllowedHereException,
     NoneIsNotAllowedException,
     UnsupportedImportException,
 )
