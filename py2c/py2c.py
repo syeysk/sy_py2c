@@ -32,7 +32,7 @@ class TranslateAlgorythmException(Exception):
     pass
 
 
-if version_info.minor < 7:
+if version_info.minor > 6:
     from dataclasses import dataclass, field
 
     @dataclass
