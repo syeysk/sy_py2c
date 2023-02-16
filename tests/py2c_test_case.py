@@ -1,7 +1,7 @@
 from io import StringIO
 from unittest import TestCase
 
-from py2c.walker import translate
+from py2c.bytecode_walker import translate
 from py2c.translator_c import TranslatorC
 
 
