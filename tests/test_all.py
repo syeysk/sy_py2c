@@ -1,6 +1,6 @@
 import unittest
 
-from py2c.py2c import (
+from py2c.exceptions import (
     InvalidAnnotationException,
     NoneIsNotAllowedException,
     UnsupportedImportException,
