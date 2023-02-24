@@ -51,10 +51,10 @@ class TranslatorC:
             self.write(')')
 
     def save(self):
-        raw_imports = list(self.raw_imports)
-        raw_imports.sort()
-        str_imports = '\n'.join(raw_imports)
-        if str_imports:
+        if self.raw_imports:
+            raw_imports = list(self.raw_imports)
+            raw_imports.sort()
+            str_imports = '\n'.join(raw_imports)
             self.save_to.write(str_imports)
             self.save_to.write('\n\n')
 
