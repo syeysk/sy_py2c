@@ -143,7 +143,7 @@ def walk(converter, node):
             value_lambda = None
 
         converter.process_init_variable(
-            name=node.target,
+            name=node.target.id,
             value_expr=value_expr,
             annotation=convert_annotation(node.annotation, node),
             value_lambda=value_lambda,
@@ -380,11 +380,13 @@ def walk(converter, node):
     # elif isinstance(node, ast.Expression):
 
     # Literals
-    elif isinstance(node, ast.List):
-        converter.process_array(node.elts)
+    elif isinstance(node, (ast.List, ast.Tuple)):
+        variable_name = None
+        if parent_node and isinstance(parent_node, ast.AnnAssign):
+            variable_name = parent_node.target.id
 
-    elif isinstance(node, ast.Tuple):
-        converter.process_array(node.elts)
+        converter.process_array(node.elts, variable_name)
+
     #     if isinstance(parent_node, ast.Return):
     #         converter.process_multi_return(expressions=node.elts)
     #     else:

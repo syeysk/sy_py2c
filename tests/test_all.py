@@ -480,18 +480,29 @@ class ArraysTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth(self):
+        """Данный тест является излишним, т. к. при указании значения C-компилятор сам вычислит длину массива"""
         source_code = 'variable: int__3 = [5, 10, 15]'
         result_code = 'int variable[3] = {5, 10, 15};\n'
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth_autosize(self):
-        source_code = 'variable: int__auto = [5, 10, 15]'
+        source_code = 'variable: int = [5, 10, 15]'
         result_code = 'int variable[] = {5, 10, 15};\n'
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth_pointer(self):
-        source_code = 'variable: int__link__4 = [5, 10, 15, 20]'
-        result_code = 'int *variable[4] = {5, 10, 15, 20};\n'
+        source_code = 'variable: int__link = [5, 10, 15, 20]'
+        result_code = 'int *variable[] = {5, 10, 15, 20};\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_array_init_static_one_depth_empty(self):
+        source_code = 'variable: int__3'
+        result_code = 'int variable[3];\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_array_init_static_multi_depth_empty(self):
+        source_code = 'variable: int__3__4__1'
+        result_code = 'int variable[3][4][1];\n'
         self.assertSuccess(source_code, result_code)
 
 

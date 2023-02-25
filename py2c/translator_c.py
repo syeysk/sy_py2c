@@ -1,5 +1,5 @@
 from sys import version_info
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 from py2c.exceptions import NoneIsNotAllowedException, SourceCodeException, UnsupportedImportException
 
@@ -23,6 +23,63 @@ else:
                 setattr(self, n, v)
 
 
+class RawString:
+    variables_data_by_level = {}
+
+    def __init__(
+        self,
+        level: int,
+        name: str,
+        ident: str,
+    ):
+        self.name = name
+        self.level = level
+        self.ident = ident
+
+    @property
+    def variable_data(self, name: str = None, level: int = None):
+        level = self.level if level is None else level
+        name = self.name if name is None else name
+        while level >= 0:
+            variable_data = self.variables_data_by_level.get(level, {}).get(name)
+            if variable_data:
+                return variable_data
+
+            level -= 1
+
+        variable_data = {}
+        self.variables_data_by_level[level] = {name: variable_data}
+        return variable_data
+
+    def set_variable_data(self, name: str = None, level: int = None, **kwargs):
+        level = self.level if level is None else level
+        name = self.name if name is None else name
+        self.variables_data_by_level.setdefault(level, {}).setdefault(name, {}).update(kwargs)
+
+
+class DeclarationVariableString(RawString):
+    """Класс управления параметрами объявления переменной"""
+    def __init__(self, annotation: Annotation, *args):
+        super().__init__(*args)
+        self.annotation = annotation
+
+    def __str__(self):
+        variable_type = self.variable_data.get('variable_type')
+        if variable_type == 'dynamic_array':
+            return (
+                '{ident}int py2c_length_{name} = {array_size};\n'
+                '{ident}{annotation} *{name}\n'
+                '{ident}{name} = ({annotation} *)malloc(py2c_length_{name} * sizeof({annotation}));\n'
+            ).format(annotation=self.annotation.type, name=self.name, array_size=self.array_size, ident=self.ident)
+
+        link = '*' if self.annotation.link else ''
+        array_sizes = self.annotation.array_sizes or self.variable_data.get('array_sizes', [])
+        str_array_sizes = ''.join([f'[{array_size}]' for array_size in array_sizes])
+        return (
+            f'{self.ident}{self.annotation.type} {link}{self.name}{str_array_sizes}'
+        )
+
+
 class TranslatorC:
     def __init__(self, save_to, config=None):
         self.config = {} if config is None else config
@@ -38,8 +95,7 @@ class TranslatorC:
         self.raw_strings = []
         self.raw_imports = set()
 
-    def write(self, data: str):
-        # self.save_to.write(data)
+    def write(self, data: Union[str, RawString]):
         self.raw_strings.append(data)
 
     def write_lbracket(self, is_need_brackets):
@@ -58,7 +114,13 @@ class TranslatorC:
             self.save_to.write(str_imports)
             self.save_to.write('\n\n')
 
-        self.save_to.write(''.join(self.raw_strings))
+        for raw_string in self.raw_strings:
+            if isinstance(raw_string, RawString):
+                self.save_to.write(str(raw_string))
+            else:
+                self.save_to.write(raw_string)
+
+        RawString.variables_data_by_level.clear()
 
     @property
     def ident(self):
@@ -88,9 +150,7 @@ class TranslatorC:
         while parts and parts[-1].isdigit():  # TODO:   убедиться, что метод возвращает Истину лишь для арабских цифр
             params['array_sizes'].append(parts.pop())
 
-        if parts and parts[-1] == 'auto':
-            parts.pop()
-            params['array_sizes'].append('')
+        params['array_sizes'].reverse()
 
         if parts and parts[-1] == 'link':
             parts.pop()
@@ -112,7 +172,7 @@ class TranslatorC:
         annotation = self.parse_annotation(annotation)
         if annotation.type == 'preproc':
             self.write(f'#define ')
-            self.walk(name)
+            self.write(name)
             if value_expr:
                 self.write(' ')
                 self.walk(value_expr)
@@ -125,14 +185,8 @@ class TranslatorC:
 
             self.write('\n')
         else:
-            self.write(f'{self.ident}{annotation.type} ')
-            if annotation.link:
-                self.write('*')
-
-            self.write(name) if isinstance(name, str) else self.walk(name)
-            for array_size in annotation.array_sizes:
-                self.write(f'[{array_size}]')
-
+            raw_string = DeclarationVariableString(annotation, self.level, name, self.ident)
+            self.write(raw_string)
             if value_expr:
                 self.write(' = ')
                 self.walk(value_expr)
@@ -418,7 +472,10 @@ class TranslatorC:
         self.walk(index)
         self.write(']')
 
-    def process_array(self, elements):
+    def process_array(self, elements, variable_name):
+        if variable_name:
+            RawString(self.level, variable_name, self.ident).set_variable_data(array_sizes=[''])
+
         self.write('{')
         for index, element in enumerate(elements, 1):
             self.walk(element)
