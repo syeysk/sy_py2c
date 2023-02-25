@@ -343,8 +343,7 @@ def walk(converter, node):
         converter.process_compare(node.left, [convert_compare_op(op) for op in node.ops], node.comparators)
 
     elif isinstance(node, ast.Attribute):
-        if node.attr == 'link':
-            converter.process_link(node.value)
+        converter.process_attribute(node.value, node.attr)
 
     elif isinstance(node, ast.Lambda):
         pos_args = []

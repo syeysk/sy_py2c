@@ -458,9 +458,13 @@ class TranslatorC:
         self.walk(orelse)
         self.write_rbracket(is_need_brackets)
 
-    def process_link(self, value):
-        self.write('&')
-        self.walk(value)
+    def process_attribute(self, value, attribute: str):
+        if attribute == 'link':
+            self.write('&')
+            self.walk(value)
+        else:
+            self.walk(value)
+            self.write(f'.{attribute}')
 
     def process_lambda(self, args, body):  # only for #define. TODO: build functions for another cases
         self.write('({}) '.format(','.join(args)))

@@ -468,7 +468,7 @@ class PointerTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
 
-class ArraysTestCase(Py2CTestCase):
+class StaticArraysTestCase(Py2CTestCase):
     def test_array_assign(self):
         source_code = 'variable[10] = 50'
         result_code = 'variable[10] = 50;\n'
@@ -483,6 +483,11 @@ class ArraysTestCase(Py2CTestCase):
         """Данный тест является излишним, т. к. при указании значения C-компилятор сам вычислит длину массива"""
         source_code = 'variable: int__3 = [5, 10, 15]'
         result_code = 'int variable[3] = {5, 10, 15};\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_array_init_static_one_depth_string(self):
+        source_code = 'variable: char__32 = \'example string\''
+        result_code = 'char variable[32] = "example string";\n'
         self.assertSuccess(source_code, result_code)
 
     def test_array_init_static_one_depth_autosize(self):
@@ -500,9 +505,31 @@ class ArraysTestCase(Py2CTestCase):
         result_code = 'int variable[3];\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_array_init_static_one_depth_empty2(self):
+        source_code = 'variable: int = []'
+        result_code = 'int variable[] = {};\n'
+        self.assertSuccess(source_code, result_code)
+
     def test_array_init_static_multi_depth_empty(self):
         source_code = 'variable: int__3__4__1'
         result_code = 'int variable[3][4][1];\n'
+        self.assertSuccess(source_code, result_code)
+
+
+class AttributeAndMethodsTestCase(Py2CTestCase):
+    def test_assign_attribute(self):
+        source_code = 'variable: int = any_name.my_attribute'
+        result_code = 'int variable = any_name.my_attribute;\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_assign_to_attribute(self):
+        source_code = 'any_name.my_attribute = 56'
+        result_code = 'any_name.my_attribute = 56;\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_call_method(self):
+        source_code = 'EEPROM.put(address, value)'
+        result_code = 'EEPROM.put(address, value);\n'
         self.assertSuccess(source_code, result_code)
 
 
