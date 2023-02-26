@@ -516,6 +516,20 @@ class StaticArraysTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
 
+# class DynamicArraysTestCase(Py2CTestCase):
+#     def test_array_init_dynamic_one_depth_empty(self):
+#         source_code = (
+#             'variable: int = []\n'
+#             'variable.append(255)'
+#         )
+#         result_code = (
+#             'int variable[] = {};\n'
+#             'malloc();'
+#             'variable.append(255);\n'
+#         )
+#         self.assertSuccess(source_code, result_code)
+
+
 class AttributeAndMethodsTestCase(Py2CTestCase):
     def test_assign_attribute(self):
         source_code = 'variable: int = any_name.my_attribute'

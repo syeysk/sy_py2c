@@ -168,7 +168,7 @@ class TranslatorC:
 
         return Annotation(**params)
 
-    def process_init_variable(self, name, value_expr, annotation: Optional[str], value_lambda=None):
+    def process_init_variable(self, name: str, value_expr, annotation: Optional[str], value_lambda=None):
         annotation = self.parse_annotation(annotation)
         if annotation.type == 'preproc':
             self.write(f'#define ')
@@ -202,21 +202,21 @@ class TranslatorC:
         self.walk(value)
         self.write(';\n')
 
-    def process_augassign_variable(self, name, value, operator):
+    def process_augassign_variable(self, name, value, operator: str):
         self.write(self.ident)
         self.walk(name)
         self.write(f' {operator}= ')
         self.walk(value)
         self.write(';\n')
 
-    def process_multiline_comment(self, comment):
+    def process_multiline_comment(self, comment: str):
         self.write(f'\n{self.ident}/*\n')
         for line in comment.strip().split('\n'):
             self.write(f'{self.ident}{line}\n')
 
         self.write(f'{self.ident}*/\n')
 
-    def process_oneline_comment(self, comment):
+    def process_oneline_comment(self, comment: str):
         self.write(f'{self.ident}// {comment}\n')
 
     def process_def_function(
@@ -298,14 +298,14 @@ class TranslatorC:
     def process_continue(self):
         self.write(f'{self.ident}continue;\n')
 
-    def process_binary_op(self, operand_left, operator, operand_right, is_need_brackets):
+    def process_binary_op(self, operand_left, operator: str, operand_right, is_need_brackets: bool):
         self.write_lbracket(is_need_brackets)
         self.walk(operand_left)
         self.write(f' {operator} ')
         self.walk(operand_right)
         self.write_rbracket(is_need_brackets)
 
-    def process_binary_op_pow(self, operand_left, operand_right, is_need_brackets):
+    def process_binary_op_pow(self, operand_left, operand_right, is_need_brackets: bool):
         module_name = 'cmath'
         self.raw_imports.add(f'#include <{module_name}>')
         self.write_lbracket(is_need_brackets)
@@ -318,7 +318,7 @@ class TranslatorC:
         # if not is_need_brackets:
         #     self.write(f';')
 
-    def process_unary_op(self, operand, operator):
+    def process_unary_op(self, operand, operator: str):
         self.write(f'{operator}')
         self.walk(operand)
 
@@ -358,7 +358,7 @@ class TranslatorC:
 
             self.write(f'{self.ident}}}\n\n')
 
-    def process_import_from(self, module_name, imported_objects: List[Tuple[str]], level: int):
+    def process_import_from(self, module_name: str, imported_objects: List[Tuple[str]], level: int):
         if len(imported_objects) > 1 or imported_objects[0][0] != '*':
             raise UnsupportedImportException(
                 'This import is not supported. Use `from module_name import *`',
@@ -372,7 +372,7 @@ class TranslatorC:
             parent_path = './' if level == 1 else '../'*(level-1)
             self.raw_imports.add(f'#include "{parent_path}{module_name}.h"')
 
-    def process_import(self, module_names):
+    def process_import(self, module_names: List[Tuple[str]]):
         raise UnsupportedImportException(
             'This import is not supported. Use `from module_name import *`',
             self.parent_node,
@@ -416,13 +416,13 @@ class TranslatorC:
 
         self.write('\n\n')
 
-    def process_compare(self, operand_left, operators, operands_right):
+    def process_compare(self, operand_left, operators: List[Tuple[str]], operands_right):
         self.walk(operand_left)
         for operator, operand_right in zip(operators, operands_right):
             self.write(f' {operator} ')
             self.walk(operand_right)
 
-    def process_bool_op(self, operand_left, operator, operands_right, is_need_brackets):
+    def process_bool_op(self, operand_left, operator: str, operands_right, is_need_brackets: bool):
         self.write_lbracket(is_need_brackets)
         self.walk(operand_left)
         for operand_right in operands_right:
@@ -431,13 +431,13 @@ class TranslatorC:
 
         self.write_rbracket(is_need_brackets)
 
-    def process_break(self, has_while_orelse):
+    def process_break(self, has_while_orelse: bool):
         if has_while_orelse:
             self.write(f'{self.ident}success = 0;\n')
 
         self.write(f'{self.ident}break;\n')
 
-    def process_ifexpr(self, condition, body, orelse, is_need_brackets):
+    def process_ifexpr(self, condition, body, orelse, is_need_brackets: bool):
         # #process_assign_variable
         # self.write(f'{self.ident}if (')
         # self.walk(condition)
@@ -466,7 +466,7 @@ class TranslatorC:
             self.walk(value)
             self.write(f'.{attribute}')
 
-    def process_lambda(self, args, body):  # only for #define. TODO: build functions for another cases
+    def process_lambda(self, args: List[str], body):  # only for #define. TODO: build functions for another cases
         self.write('({}) '.format(','.join(args)))
         self.walk(body)
 
@@ -476,7 +476,7 @@ class TranslatorC:
         self.walk(index)
         self.write(']')
 
-    def process_array(self, elements, variable_name):
+    def process_array(self, elements, variable_name: str):
         if variable_name:
             RawString(self.level, variable_name, self.ident).set_variable_data(array_sizes=[''])
 
@@ -488,7 +488,7 @@ class TranslatorC:
 
         self.write('}')
 
-    def process_for_function(self, name, body, function_name, args):
+    def process_for_function(self, name: str, body, function_name, args):
         self.write(f'{self.ident}for ({name}=')
         if len(args) >= 2:
             self.walk(args[0])
