@@ -314,7 +314,7 @@ class TranslatorC:
             # if not is_need_brackets:
             #     self.write(f';')
         else:
-            if operator == '//':
+            if operator == '//':  # https://youngcoder.ru/lessons/4/
                 operator = '/'
 
             self.write_lbracket(is_need_brackets)
