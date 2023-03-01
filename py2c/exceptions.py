@@ -15,10 +15,6 @@ class NoneIsNotAllowedException(SourceCodeException):
     pass
 
 
-class UnsupportedImportException(SourceCodeException):
-    pass
-
-
 class LambdaIsNotAllowedHereException(SourceCodeException):
     pass
 

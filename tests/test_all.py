@@ -3,7 +3,6 @@ import unittest
 from py2c.exceptions import (
     InvalidAnnotationException,
     NoneIsNotAllowedException,
-    UnsupportedImportException,
 )
 from tests.py2c_test_case import Py2CTestCase
 
@@ -115,19 +114,32 @@ class PreprocConstantsTestCase(Py2CTestCase):
 class ImportTestCase(Py2CTestCase):
     def test_invalid_import_one_module(self):
         source_code = 'import module1'
-        self.assertBad(source_code, UnsupportedImportException)
+        result_code = '#include <module1.h>\n\n'
+        self.assertSuccess(source_code, result_code)
+
+    def test_invalid_import_one_module(self):
+        source_code = 'import module1 as m1'
+        result_code = '#include <module1.h>\n\n'
+        self.assertSuccess(source_code, result_code)
 
     def test_invalid_import_some_modules_inline(self):
         source_code = 'import module1, module2, module3'
-        self.assertBad(source_code, UnsupportedImportException)
+        result_code = (
+            '#include <module1.h>\n'
+            '#include <module2.h>\n'
+            '#include <module3.h>\n\n'
+        )
+        self.assertSuccess(source_code, result_code)
 
     def test_invalid_import_some_names_from(self):
         source_code = 'from module1 import name1, name2'
-        self.assertBad(source_code, UnsupportedImportException)
+        result_code = '#include <module1.h>\n\n'
+        self.assertSuccess(source_code, result_code)
 
     def test_invalid_import_one_name_from(self):
         source_code = 'from module1 import name1'
-        self.assertBad(source_code, UnsupportedImportException)
+        result_code = '#include <module1.h>\n\n'
+        self.assertSuccess(source_code, result_code)
 
     def test_allowed_import(self):
         source_code = 'from module1 import *'
@@ -642,9 +654,10 @@ class PowTestCase(Py2CTestCase):
         self.assertSuccess(source_code, result_code)
 
 
-class LibMathTestCase(Py2CTestCase):
+class ModuleMathTestCase(Py2CTestCase):
     """
     math в c/c++: https://ejudge.179.ru/tasks/cpp/total/132.html
+                  https://ru.wikipedia.org/wiki/Math.h
     math в python: https://docs.python.org/3/library/math.html
     """
     # def test_assign_attribute(self):

@@ -333,7 +333,7 @@ def walk(converter, node):
         pass
 
     elif isinstance(node, ast.Import):
-        converter.process_import([node_name.name for node_name in node.names])
+        converter.process_import([(node_name.name, node_name.asname) for node_name in node.names])
 
     elif isinstance(node, ast.ImportFrom):
         names = [(alias.name, alias.asname) for alias in node.names]

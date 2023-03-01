@@ -1,7 +1,7 @@
 from sys import version_info
 from typing import Optional, List, Tuple, Union
 
-from py2c.exceptions import NoneIsNotAllowedException, SourceCodeException, UnsupportedImportException
+from py2c.exceptions import NoneIsNotAllowedException, SourceCodeException
 
 
 if version_info.minor > 6:
@@ -361,12 +361,6 @@ class TranslatorC:
             self.write(f'{self.ident}}}\n\n')
 
     def process_import_from(self, module_name: str, imported_objects: List[Tuple[str]], level: int):
-        if len(imported_objects) > 1 or imported_objects[0][0] != '*':
-            raise UnsupportedImportException(
-                'This import is not supported. Use `from module_name import *`',
-                self.parent_node,
-            )
-
         module_name = module_name.replace('.', '/')
         if level == 0:
             self.raw_imports.add(f'#include <{module_name}.h>')
@@ -375,15 +369,9 @@ class TranslatorC:
             self.raw_imports.add(f'#include "{parent_path}{module_name}.h"')
 
     def process_import(self, module_names: List[Tuple[str]]):
-        raise UnsupportedImportException(
-            'This import is not supported. Use `from module_name import *`',
-            self.parent_node,
-        )
-        # for module_name in module_names:
-        #     module_name = module_name.replace('.', '/')
-        #     self.write(f'#include <{module_name}.h>\n')
-        #
-        # self.write('\n')
+        for module_name, module_alias in module_names:
+            module_name = module_name.replace('.', '/')
+            self.raw_imports.add(f'#include <{module_name}.h>')
 
     def process_expression(self, expression):
         self.write(self.ident)
