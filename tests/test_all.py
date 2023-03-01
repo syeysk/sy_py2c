@@ -546,6 +546,11 @@ class AttributeAndMethodsTestCase(Py2CTestCase):
         result_code = 'EEPROM.put(address, value);\n'
         self.assertSuccess(source_code, result_code)
 
+    def test_subscript(self):
+        source_code = 'value: int = array_struct[4].struct_field'
+        result_code = 'int value = array_struct[4].struct_field;\n'
+        self.assertSuccess(source_code, result_code)
+
 
 class BooleanTestCase(Py2CTestCase):
     def test_false(self):
@@ -635,6 +640,61 @@ class PowTestCase(Py2CTestCase):
             'int c = pow(a, b);\n'
         )
         self.assertSuccess(source_code, result_code)
+
+
+class LibMathTestCase(Py2CTestCase):
+    """
+    math в c/c++: https://ejudge.179.ru/tasks/cpp/total/132.html
+    math в python: https://docs.python.org/3/library/math.html
+    """
+    # def test_assign_attribute(self):
+    #     source_code = 'variable: int = any_name.my_attribute'
+    #     result_code = 'int variable = any_name.my_attribute;\n'
+    #     self.assertSuccess(source_code, result_code)
+    #
+    # def test_assign_to_attribute(self):
+    #     source_code = 'any_name.my_attribute = 56'
+    #     result_code = 'any_name.my_attribute = 56;\n'
+    #     self.assertSuccess(source_code, result_code)
+
+    def test_math_methods(self):
+        # TODO: round - встроенная функция в python
+        # TODO: pow - принимает 2 аргумента
+        # TODO: log - принимает второй необязательный аргумент в python
+        method_names = (
+            'floor ceil trunc fabs'  # Округление
+            'sqrt cbrt exp log log10'  # Корни, степени, логарифмы
+            'sin cos tan asin acos atan'  # Тригонометрия
+        ).split()
+        for method_name in method_names:
+            self.setUp()
+            with self.subTest(msg=method_name):
+                source_code = (
+                    'from math import *\n'
+                    f'v: int = math.{method_name}(56)'
+                )
+                result_code = (
+                    '#include <math.h>\n\n'
+                    f'int v = {method_name}(56);\n'
+                )
+                self.assertSuccess(source_code, result_code)
+
+    # def test_math_constants(self):
+    #     const_names = {
+    #         'pi': 'M_PI'
+    #     }
+    #     for const_name, const_name_c in const_names.items():
+    #         self.setUp()
+    #         with self.subTest(msg=const_name):
+    #             source_code = (
+    #                 'from math import *\n'
+    #                 f'v: int = math.{const_name}'
+    #             )
+    #             result_code = (
+    #                 '#include <math.h>\n\n'
+    #                 f'int v = {const_name_c};\n'
+    #             )
+    #             self.assertSuccess(source_code, result_code)
 
 
 # class LambdaTestCase(Py2CTestCase):

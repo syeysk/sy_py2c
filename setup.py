@@ -21,7 +21,7 @@ def get_long_description():
 
 setup(
     name='py2c',
-    version='0.0.2',
+    version='0.0.3',
     license='LGPL-3.0',
     description='Python into C syntax translator',
     packages=[

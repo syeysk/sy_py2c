@@ -121,6 +121,8 @@ class TranslatorC:
                 self.save_to.write(raw_string)
 
         RawString.variables_data_by_level.clear()
+        self.raw_strings.clear()
+        self.raw_imports.clear()
 
     @property
     def ident(self):
@@ -464,7 +466,14 @@ class TranslatorC:
             self.walk(value)
         else:
             self.walk(value)
-            self.write(f'.{attribute}')
+
+            module_name = 'math'
+            if self.raw_strings[-1] == module_name:
+                #self.raw_imports.add(f'#include <{module_name}.h>')
+                self.raw_strings.pop()
+                self.write(f'{attribute}')
+            else:
+                self.write(f'.{attribute}')
 
     def process_lambda(self, args: List[str], body):  # only for #define. TODO: build functions for another cases
         self.write('({}) '.format(','.join(args)))
