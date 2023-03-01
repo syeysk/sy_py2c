@@ -301,24 +301,27 @@ class TranslatorC:
         self.write(f'{self.ident}continue;\n')
 
     def process_binary_op(self, operand_left, operator: str, operand_right, is_need_brackets: bool):
-        self.write_lbracket(is_need_brackets)
-        self.walk(operand_left)
-        self.write(f' {operator} ')
-        self.walk(operand_right)
-        self.write_rbracket(is_need_brackets)
+        if operator == '**':
+            module_name = 'cmath'
+            self.raw_imports.add(f'#include <{module_name}>')
+            self.write_lbracket(is_need_brackets)
+            self.write(f'pow(')
+            self.walk(operand_left)
+            self.write(f', ')
+            self.walk(operand_right)
+            self.write(f')')
+            self.write_rbracket(is_need_brackets)
+            # if not is_need_brackets:
+            #     self.write(f';')
+        else:
+            if operator == '//':
+                operator = '/'
 
-    def process_binary_op_pow(self, operand_left, operand_right, is_need_brackets: bool):
-        module_name = 'cmath'
-        self.raw_imports.add(f'#include <{module_name}>')
-        self.write_lbracket(is_need_brackets)
-        self.write(f'pow(')
-        self.walk(operand_left)
-        self.write(f', ')
-        self.walk(operand_right)
-        self.write(f')')
-        self.write_rbracket(is_need_brackets)
-        # if not is_need_brackets:
-        #     self.write(f';')
+            self.write_lbracket(is_need_brackets)
+            self.walk(operand_left)
+            self.write(f' {operator} ')
+            self.walk(operand_right)
+            self.write_rbracket(is_need_brackets)
 
     def process_unary_op(self, operand, operator: str):
         self.write(f'{operator}')

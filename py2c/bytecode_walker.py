@@ -14,12 +14,12 @@ def convert_op(node):
         return '*'
     elif isinstance(node, ast.Div):
         return '/'
-    # elif isinstance(node, ast.FloorDiv):
-    #    return ''
+    elif isinstance(node, ast.FloorDiv):
+        return '//'
     elif isinstance(node, ast.Mod):
         return '%'
-    # elif isinstance(node, ast.Pow):
-    #    return ''
+    elif isinstance(node, ast.Pow):
+        return '**'
     elif isinstance(node, ast.RShift):
         return '>>'
     elif isinstance(node, ast.LShift):
@@ -219,19 +219,12 @@ def walk(converter, node):
 
     elif isinstance(node, ast.BinOp):
         is_need_brackets = isinstance(parent_node, (ast.BinOp, ast.UnaryOp))
-        if isinstance(node.op, ast.Pow):
-            converter.process_binary_op_pow(
-                operand_left=node.left,
-                operand_right=node.right,
-                is_need_brackets=is_need_brackets,
-            )
-        else:
-            converter.process_binary_op(
-                operand_left=node.left,
-                operator=convert_op(node.op),
-                operand_right=node.right,
-                is_need_brackets=is_need_brackets,
-            )
+        converter.process_binary_op(
+            operand_left=node.left,
+            operator=convert_op(node.op),
+            operand_right=node.right,
+            is_need_brackets=is_need_brackets,
+        )
 
     elif isinstance(node, ast.BoolOp):
         is_need_brackets = isinstance(parent_node, (ast.BoolOp, ast.UnaryOp))
