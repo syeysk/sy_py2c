@@ -1,126 +1,139 @@
-import unittest
+from io import StringIO
 
+import pytest
+from pytest import raises
+
+from py2c.bytecode_walker import translate
 from py2c.exceptions import (
     InvalidAnnotationException,
     NoneIsNotAllowedException,
 )
-from tests.py2c_test_case import Py2CTestCase
+from py2c.translator_c import TranslatorC
 
 
-class OperatorsAndVariablesTestCase(Py2CTestCase):
+def trans(source_code):
+    file_stdout = StringIO()
+    translator = TranslatorC(save_to=file_stdout)
+    translate(translator, source_code)
+    return file_stdout.getvalue()
+
+
+class TestOperatorsAndVariables:
     def test_init_variables_with_valid_annotation(self):
         source_code = 'variable1: \'int\' = 1\nvariable2: int = 1'
         result_code = 'int variable1 = 1;\nint variable2 = 1;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_init_variables_with_invalid_annotation_1(self):
-        self.assertBad('a: a + b = 1', InvalidAnnotationException)
+        with raises(InvalidAnnotationException):
+            trans('a: a + b = 1')
 
     def test_init_variables_with_invalid_annotation_2(self):
-        self.assertBad('b: print(1) = 1', InvalidAnnotationException)
+        with raises(InvalidAnnotationException):
+            trans('b: print(1) = 1')
 
     def test_init_empty_variables(self):
         source_code = 'variable1: int'
         result_code = 'int variable1;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_init_string_variable(self):
         source_code = 'variable: char = \'1\''
         result_code = 'char variable = \"1\";\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_init_string_variable2(self):
         source_code = 'variable: char = \'a\''
         result_code = 'char variable = \"a\";\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_init_some_variables_with_the_different_types(self):
         source_code = 'a: int\nb: float\nc: char'
         result_code = 'int a;\nfloat b;\nchar c;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     # def test_init_some_variables_with_the_same_types(self):
     #     source_code = 'a: int\nb: int\nc: int'
     #     result_code = 'int a, b, c;\n'
-    #     self.assertSuccess(source_code, result_code)
+    #     assert trans(source_code) == result_code
 
 
-class NoneTestCase(Py2CTestCase):
+class TestNone:
     def test_none_value_of_variable(self):
-        self.assertBad('variable2: int = None', NoneIsNotAllowedException)
+        with raises(NoneIsNotAllowedException):
+            trans('variable2: int = None')
 
     def test_none_annotation_of_variable(self):
-        self.assertBad('variable2: None = 1', NoneIsNotAllowedException)
+        with raises(NoneIsNotAllowedException):
+            trans('variable2: None = 1')
 
     def test_none_annotation_of_function(self):
-        self.assertBad('def function() -> None:\n    pass', NoneIsNotAllowedException)
+        with raises(NoneIsNotAllowedException):
+            trans('def function() -> None:\n    pass')
 
     def test_typed_function_with_return_none(self):
-        self.assertBad('def function(): return None', NoneIsNotAllowedException)
+        with raises(NoneIsNotAllowedException):
+            trans('def function(): return None')
 
 
-class NULLTestCase(Py2CTestCase):
-    ...
-
-
-class UnaryOperatorsTestCase(Py2CTestCase):
+class TestUnaryOperators:
     def test_usub(self):
         source_code = 'variable: int = 1\nvariable = -variable'
         result_code = 'int variable = 1;\nvariable = -variable;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_uadd(self):
         source_code = 'variable: int = 1\nvariable = +variable'
         result_code = 'int variable = 1;\nvariable = +variable;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_not(self):
         source_code = 'variable: int = 1\nvariable = not variable'
         result_code = 'int variable = 1;\nvariable = !variable;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_invert(self):
         source_code = 'variable: int = 1\nvariable = ~variable'
         result_code = 'int variable = 1;\nvariable = ~variable;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class TernaryOperatorTestCase(Py2CTestCase):
+class TestTernaryOperator:
     def test_ternary(self):
         source_code = 'a: int = 1\nb: int\nb = 10 if a == 99 else b'
         result_code = 'int a = 1;\nint b;\nb = (a == 99) ? 10 : b;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class DeleteTestCase(Py2CTestCase):
+class TestDelete:
     def test_delete(self):
         source_code = 'del a, b'
         result_code = 'delete a;\ndelete b;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class PreprocConstantsTestCase(Py2CTestCase):
+class TestPreprocConstants:
     def test_variable_preproc(self):
         source_code = 'TEST_CONST: preproc = 56'
         result_code = '#define TEST_CONST 56\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_function(self):
         source_code = 'TEST_FUNC: preproc = lambda x, y: x-y*7'
         result_code = '#define TEST_FUNC(x,y) x - (y * 7)\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class ImportTestCase(Py2CTestCase):
+class TestImport:
     def test_invalid_import_one_module(self):
         source_code = 'import module1'
         result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_invalid_import_one_module2(self):
         source_code = 'import module1 as m1'
         result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_invalid_import_some_modules_inline(self):
         source_code = 'import module1, module2, module3'
@@ -129,69 +142,69 @@ class ImportTestCase(Py2CTestCase):
             '#include <module2.h>\n'
             '#include <module3.h>\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_invalid_import_some_names_from(self):
         source_code = 'from module1 import name1, name2'
         result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_invalid_import_one_name_from(self):
         source_code = 'from module1 import name1'
         result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_allowed_import(self):
         source_code = 'from module1 import *'
         result_code = '#include <module1.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_allowed_multiline_import(self):
         source_code = 'from module1 import *\nfrom module2 import *'
         result_code = '#include <module1.h>\n#include <module2.h>\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_allowed_import_not_from_std(self):
         source_code = 'from .module1 import *'
         result_code = '#include "./module1.h"\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_allowed_import_not_from_std_parent_dir(self):
         source_code = 'from ..module1 import *'
         result_code = '#include "../module1.h"\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_allowed_import_not_from_std_more_parent_dirs(self):
         source_code = 'from ...module1 import *'
         result_code = '#include "../../module1.h"\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class FunctionTestCase(Py2CTestCase):
+class TestFunction:
     def test_empty_function(self):
         source_code = 'def function(): pass'
         result_code = 'void function(void) {\n}\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_empty_typed_function(self):
         source_code = 'def function() -> int: pass'
         result_code = 'int function(void) {\n}\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_typed_function_with_return(self):
         source_code = 'def function() -> int: return 34'
         result_code = 'int function(void) {\n    return 34;\n}\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_typed_function_with_return_and_args(self):
         source_code = 'def function(arg1: float, arg2: char) -> int:\n    a: int = 5\n    return a + arg1'
         result_code = 'int function(float arg1, char arg2) {\n    int a = 5;\n    return a + arg1;\n}\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_typed_function_with_return_none(self):
         source_code = 'def function(): return'
         result_code = 'void function(void) {\n    return;\n}\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_function_with_one_default_ars(self):
         source_code = (
@@ -208,7 +221,7 @@ class FunctionTestCase(Py2CTestCase):
             '    return function(arg1, arg2, 10);\n'
             '}\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_function_with_default_ars(self):
         source_code = (
@@ -228,7 +241,7 @@ class FunctionTestCase(Py2CTestCase):
             '    return function(arg1, arg2, 10, 55);\n'
             '}\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_function_with_default_ars_no_return(self):
         source_code = (
@@ -248,36 +261,36 @@ class FunctionTestCase(Py2CTestCase):
             '    function(arg1, arg2, 10, 55);\n'
             '}\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_calling_function(self):
         source_code = 'function(arg1, 1)'
         result_code = 'function(arg1, 1);\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_assign_calling_function(self):
         source_code = 'variable: int = function(arg1, 1)'
         result_code = 'int variable = function(arg1, 1);\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_assign_calling_function_with_ternary_op(self):
         source_code = 'variable: int = function(arg1, 5 if c > 45 else d)'
         result_code = 'int variable = function(arg1, ((c > 45) ? 5 : d));\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class IfTestCase(Py2CTestCase):
+class TestIf:
     # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if(self):
         source_code = 'if variable > 1:\n    variable2 = 2'
         result_code = 'if (variable > 1) {\n    variable2 = 2;\n}\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if_else(self):
         source_code = 'if variable > 1:\n    variable2 = 2\nelse:\n    variable3 = 3'
         result_code = 'if (variable > 1) {\n    variable2 = 2;\n} else {\n    variable3 = 3;\n}\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if_elif_else(self):
@@ -302,7 +315,7 @@ class IfTestCase(Py2CTestCase):
             '    var3 = 3;\n'
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_if_multiline(self):
         source_code = (
@@ -316,7 +329,7 @@ class IfTestCase(Py2CTestCase):
             '    function1();\n'
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_if_else_multiline(self):
         source_code = (
@@ -335,7 +348,7 @@ class IfTestCase(Py2CTestCase):
             '    variable3 = 3;\n'
             '    function2();\n'
             '}\n\n')
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_if_elif_else_multiline(self):
         source_code = (
@@ -365,10 +378,10 @@ class IfTestCase(Py2CTestCase):
             '    function3();\n'
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class WhileTestCase(Py2CTestCase):
+class TestWhile:
     def test_while(self):
         source_code = (
             'while variable < 10:\n'
@@ -388,7 +401,7 @@ class WhileTestCase(Py2CTestCase):
             '    }\n\n'  # TODO: должен быть только один перенос
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_while_else(self):
         source_code = (
@@ -416,10 +429,10 @@ class WhileTestCase(Py2CTestCase):
             '    variable = 0;\n'
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class CommentTestCase(Py2CTestCase):
+class TestComment:
     def test_function_oneline_docstring(self):
         source_code = (
             'def function():\n'
@@ -431,7 +444,7 @@ class CommentTestCase(Py2CTestCase):
             '*/\n'
             'void function(void) {\n}\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_function_multiline_docstring(self):
         source_code = (
@@ -448,7 +461,7 @@ class CommentTestCase(Py2CTestCase):
             '*/\n'
             'void function(void) {\n}\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_function_multiline_comment(self):
         source_code = (
@@ -465,67 +478,67 @@ class CommentTestCase(Py2CTestCase):
             'the second test comment\n'
             '*/\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class PointerTestCase(Py2CTestCase):
+class TestPointer:
     def test_pointer_using(self):
         source_code = 'function(variable.link)'
         result_code = 'function(&variable);\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_pointer_initing(self):
         source_code = 'variable: int__link'
         result_code = 'int *variable;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class StaticArraysTestCase(Py2CTestCase):
+class TestStaticArrays:
     def test_array_assign(self):
         source_code = 'variable[10] = 50'
         result_code = 'variable[10] = 50;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_using(self):
         source_code = 'variable1 = variable2[variable3]'
         result_code = 'variable1 = variable2[variable3];\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_one_depth(self):
         """Данный тест является излишним, т. к. при указании значения C-компилятор сам вычислит длину массива"""
         source_code = 'variable: int__3 = [5, 10, 15]'
         result_code = 'int variable[3] = {5, 10, 15};\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_one_depth_string(self):
         source_code = 'variable: char__32 = \'example string\''
         result_code = 'char variable[32] = "example string";\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_one_depth_autosize(self):
         source_code = 'variable: int = [5, 10, 15]'
         result_code = 'int variable[] = {5, 10, 15};\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_one_depth_pointer(self):
         source_code = 'variable: int__link = [5, 10, 15, 20]'
         result_code = 'int *variable[] = {5, 10, 15, 20};\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_one_depth_empty(self):
         source_code = 'variable: int__3'
         result_code = 'int variable[3];\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_one_depth_empty2(self):
         source_code = 'variable: int = []'
         result_code = 'int variable[] = {};\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_array_init_static_multi_depth_empty(self):
         source_code = 'variable: int__3__4__1'
         result_code = 'int variable[3][4][1];\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
 # class DynamicArraysTestCase(Py2CTestCase):
@@ -542,38 +555,38 @@ class StaticArraysTestCase(Py2CTestCase):
 #         self.assertSuccess(source_code, result_code)
 
 
-class AttributeAndMethodsTestCase(Py2CTestCase):
+class TestAttributeAndMethods:
     def test_assign_attribute(self):
         source_code = 'variable: int = any_name.my_attribute'
         result_code = 'int variable = any_name.my_attribute;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_assign_to_attribute(self):
         source_code = 'any_name.my_attribute = 56'
         result_code = 'any_name.my_attribute = 56;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_call_method(self):
         source_code = 'EEPROM.put(address, value)'
         result_code = 'EEPROM.put(address, value);\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_subscript(self):
         source_code = 'value: int = array_struct[4].struct_field'
         result_code = 'int value = array_struct[4].struct_field;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class BooleanTestCase(Py2CTestCase):
+class TestBoolean:
     def test_false(self):
         source_code = 'variable = False'
         result_code = 'variable = 0;\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_true(self):
         source_code = 'while True: pass'
         result_code = 'while (1) {\n}\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_bool_sequence(self):
         source_code = (
@@ -585,7 +598,7 @@ class BooleanTestCase(Py2CTestCase):
             '    k += 1;\n'
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_bool_sequence_with_parent(self):
         source_code = (
@@ -597,17 +610,17 @@ class BooleanTestCase(Py2CTestCase):
             '    k += 1;\n'
             '}\n\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class ForTestCase(Py2CTestCase):
+class TestFor:
     def test_for(self):
         source_code = 'for j in range(0, 5): pass'
         result_code = 'for (j=0; j<5; j++) {\n}\n\n'
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class ReturningSeveralValuesTestCase(Py2CTestCase):
+class TestReturningSeveralValues:
     def test_several_values(self):
         source_code = (
             'def function() -> int:\n'
@@ -623,10 +636,10 @@ class ReturningSeveralValuesTestCase(Py2CTestCase):
             '    return _function_mys;\n'
             '}\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class PowTestCase(Py2CTestCase):
+class TestPow:
     def test_pow(self):
         source_code = (
             'a: int = a ** b'
@@ -635,7 +648,7 @@ class PowTestCase(Py2CTestCase):
             '#include <math.h>\n\n'
             'int a = pow(a, b);\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
     def test_pow_with_imports(self):
         source_code = (
@@ -651,63 +664,52 @@ class PowTestCase(Py2CTestCase):
             'int b = 3;\n'
             'int c = pow(a, b);\n'
         )
-        self.assertSuccess(source_code, result_code)
+        assert trans(source_code) == result_code
 
 
-class ModuleMathTestCase(Py2CTestCase):
+@pytest.mark.parametrize(
+    'method_name',
+    (
+        'floor ceil trunc fabs'  # Округление
+        'sqrt cbrt exp log log10'  # Корни, степени, логарифмы
+        'sin cos tan asin acos atan'  # Тригонометрия
+    ).split(),
+)
+def test_math_methods(method_name):
     """
     math в c/c++: https://ejudge.179.ru/tasks/cpp/total/132.html
                   https://ru.wikipedia.org/wiki/Math.h
     math в python: https://docs.python.org/3/library/math.html
     """
-    # def test_assign_attribute(self):
-    #     source_code = 'variable: int = any_name.my_attribute'
-    #     result_code = 'int variable = any_name.my_attribute;\n'
-    #     self.assertSuccess(source_code, result_code)
-    #
-    # def test_assign_to_attribute(self):
-    #     source_code = 'any_name.my_attribute = 56'
-    #     result_code = 'any_name.my_attribute = 56;\n'
-    #     self.assertSuccess(source_code, result_code)
+    # TODO: round - встроенная функция в python
+    # TODO: pow - принимает 2 аргумента
+    # TODO: log - принимает второй необязательный аргумент в python
+    source_code = (
+        'from math import *\n'
+        f'v: int = math.{method_name}(56)'
+    )
+    result_code = (
+        '#include <math.h>\n\n'
+        f'int v = {method_name}(56);\n'
+    )
+    assert trans(source_code) == result_code
 
-    def test_math_methods(self):
-        # TODO: round - встроенная функция в python
-        # TODO: pow - принимает 2 аргумента
-        # TODO: log - принимает второй необязательный аргумент в python
-        method_names = (
-            'floor ceil trunc fabs'  # Округление
-            'sqrt cbrt exp log log10'  # Корни, степени, логарифмы
-            'sin cos tan asin acos atan'  # Тригонометрия
-        ).split()
-        for method_name in method_names:
-            self.setUp()
-            with self.subTest(msg=method_name):
-                source_code = (
-                    'from math import *\n'
-                    f'v: int = math.{method_name}(56)'
-                )
-                result_code = (
-                    '#include <math.h>\n\n'
-                    f'int v = {method_name}(56);\n'
-                )
-                self.assertSuccess(source_code, result_code)
-
-    # def test_math_constants(self):
-    #     const_names = {
-    #         'pi': 'M_PI'
-    #     }
-    #     for const_name, const_name_c in const_names.items():
-    #         self.setUp()
-    #         with self.subTest(msg=const_name):
-    #             source_code = (
-    #                 'from math import *\n'
-    #                 f'v: int = math.{const_name}'
-    #             )
-    #             result_code = (
-    #                 '#include <math.h>\n\n'
-    #                 f'int v = {const_name_c};\n'
-    #             )
-    #             self.assertSuccess(source_code, result_code)
+# def test_math_constants(self):
+#     const_names = {
+#         'pi': 'M_PI'
+#     }
+#     for const_name, const_name_c in const_names.items():
+#         self.setUp()
+#         with self.subTest(msg=const_name):
+#             source_code = (
+#                 'from math import *\n'
+#                 f'v: int = math.{const_name}'
+#             )
+#             result_code = (
+#                 '#include <math.h>\n\n'
+#                 f'int v = {const_name_c};\n'
+#             )
+#             self.assertSuccess(source_code, result_code)
 
 
 # class LambdaTestCase(Py2CTestCase):
@@ -715,7 +717,3 @@ class ModuleMathTestCase(Py2CTestCase):
 #         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию
 #         source_code = "variable1: int = lambda x, y: x + y"
 #         self.assertBad(source_code, LambdaIsNotAllowedHereException)
-
-
-if __name__ == '__main__':
-    unittest.main()

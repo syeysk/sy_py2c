@@ -66,9 +66,8 @@ def main():
         delay_us(200)
 """
 
-RESULT_LISTING_4_6 = """#include <tiny2313.h>
-
-#include <delay.h>
+RESULT_LISTING_4_6 = """#include <delay.h>
+#include <tiny2313.h>
 
 void main(void) {
     CLKPR = 128;
@@ -109,9 +108,8 @@ def main():
             delay_ms(200)
 """
 
-RESULT_LISTING_4_8 = """#include <tiny2313.h>
-
-#include <delay.h>
+RESULT_LISTING_4_8 = """#include <delay.h>
+#include <tiny2313.h>
 
 void main(void) {
     PORTB = 255;

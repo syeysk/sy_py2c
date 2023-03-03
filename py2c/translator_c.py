@@ -302,8 +302,8 @@ class TranslatorC:
 
     def process_binary_op(self, operand_left, operator: str, operand_right, is_need_brackets: bool):
         if operator == '**':
-            module_name = 'cmath'
-            self.raw_imports.add(f'#include <{module_name}>')
+            module_name = 'math'
+            self.raw_imports.add(f'#include <{module_name}.h>')
             self.write_lbracket(is_need_brackets)
             self.write(f'pow(')
             self.walk(operand_left)
