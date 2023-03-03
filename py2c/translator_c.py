@@ -81,6 +81,19 @@ class DeclarationVariableString(RawString):
 
 
 class TranslatorC:
+    """
+    > Если подключаемый файл указан в <>, то поиск будет происходить в стандартных каталогах,
+      предназначенных для хранения заголовочных файлов.
+      В случае, если подключаемый файл заключен в двойные кавычки, поиск будет происходить в текущем рабочем каталоге.
+      Если файл не найден, то поиск продолжается в стандартных каталогах
+    Источник: http://www.c-cpp.ru/books/include
+
+    Поэтому в большинстве случаев импорт модуля будет транслироваться в импорт пользовательскго модуля, чтобы поведение
+    препроцессора C было схожим с интрепретатором Python
+    """
+    STR_INCLUDE_USER_MODULE = '#include "{parent_path}{module_name}.h"'
+    STR_INCLUDE_STD_MODULE = '#include <{module_name}.h>'
+
     def __init__(self, save_to, config=None):
         self.config = {} if config is None else config
         self.save_to = save_to
@@ -302,8 +315,7 @@ class TranslatorC:
 
     def process_binary_op(self, operand_left, operator: str, operand_right, is_need_brackets: bool):
         if operator == '**':
-            module_name = 'math'
-            self.raw_imports.add(f'#include <{module_name}.h>')
+            self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name='math'))
             self.write_lbracket(is_need_brackets)
             self.write(f'pow(')
             self.walk(operand_left)
@@ -366,15 +378,17 @@ class TranslatorC:
     def process_import_from(self, module_name: str, imported_objects: List[Tuple[str]], level: int):
         module_name = module_name.replace('.', '/')
         if level == 0:
-            self.raw_imports.add(f'#include <{module_name}.h>')
+            self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name=module_name))
         else:
-            parent_path = './' if level == 1 else '../'*(level-1)
-            self.raw_imports.add(f'#include "{parent_path}{module_name}.h"')
+            parent_path = '' if level == 1 else '../'*(level-1)
+            self.raw_imports.add(
+                self.STR_INCLUDE_USER_MODULE.format(parent_path=parent_path, module_name=module_name),
+            )
 
     def process_import(self, module_names: List[Tuple[str]]):
         for module_name, module_alias in module_names:
             module_name = module_name.replace('.', '/')
-            self.raw_imports.add(f'#include <{module_name}.h>')
+            self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name=module_name))
 
     def process_expression(self, expression):
         self.write(self.ident)

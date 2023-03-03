@@ -127,46 +127,46 @@ class TestPreprocConstants:
 class TestImport:
     def test_invalid_import_one_module(self):
         source_code = 'import module1'
-        result_code = '#include <module1.h>\n\n'
+        result_code = '#include "module1.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_invalid_import_one_module2(self):
         source_code = 'import module1 as m1'
-        result_code = '#include <module1.h>\n\n'
+        result_code = '#include "module1.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_invalid_import_some_modules_inline(self):
         source_code = 'import module1, module2, module3'
         result_code = (
-            '#include <module1.h>\n'
-            '#include <module2.h>\n'
-            '#include <module3.h>\n\n'
+            '#include "module1.h"\n'
+            '#include "module2.h"\n'
+            '#include "module3.h"\n\n'
         )
         assert trans(source_code) == result_code
 
     def test_invalid_import_some_names_from(self):
         source_code = 'from module1 import name1, name2'
-        result_code = '#include <module1.h>\n\n'
+        result_code = '#include "module1.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_invalid_import_one_name_from(self):
         source_code = 'from module1 import name1'
-        result_code = '#include <module1.h>\n\n'
+        result_code = '#include "module1.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_allowed_import(self):
         source_code = 'from module1 import *'
-        result_code = '#include <module1.h>\n\n'
+        result_code = '#include "module1.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_allowed_multiline_import(self):
         source_code = 'from module1 import *\nfrom module2 import *'
-        result_code = '#include <module1.h>\n#include <module2.h>\n\n'
+        result_code = '#include "module1.h"\n#include "module2.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_allowed_import_not_from_std(self):
         source_code = 'from .module1 import *'
-        result_code = '#include "./module1.h"\n\n'
+        result_code = '#include "module1.h"\n\n'
         assert trans(source_code) == result_code
 
     def test_allowed_import_not_from_std_parent_dir(self):
@@ -645,7 +645,7 @@ class TestPow:
             'a: int = a ** b'
         )
         result_code = (
-            '#include <math.h>\n\n'
+            '#include "math.h"\n\n'
             'int a = pow(a, b);\n'
         )
         assert trans(source_code) == result_code
@@ -658,11 +658,22 @@ class TestPow:
             'c: int = a ** b'
         )
         result_code = (
-            '#include <math.h>\n'
-            '#include <module1.h>\n\n'
+            '#include "math.h"\n'
+            '#include "module1.h"\n\n'
             'int a = 10;\n'
             'int b = 3;\n'
             'int c = pow(a, b);\n'
+        )
+        assert trans(source_code) == result_code
+
+    def test_pow_with_import_math(self):
+        source_code = (
+            'from math import sqrt\n'
+            'a: int = sqrt(a ** b)'
+        )
+        result_code = (
+            '#include "math.h"\n\n'
+            'int a = sqrt(pow(a, b));\n'
         )
         assert trans(source_code) == result_code
 
@@ -689,7 +700,7 @@ def test_math_methods(method_name):
         f'v: int = math.{method_name}(56)'
     )
     result_code = (
-        '#include <math.h>\n\n'
+        '#include "math.h"\n\n'
         f'int v = {method_name}(56);\n'
     )
     assert trans(source_code) == result_code
