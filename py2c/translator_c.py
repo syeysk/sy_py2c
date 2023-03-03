@@ -94,6 +94,8 @@ class TranslatorC:
     """
     STR_INCLUDE_USER_MODULE = '#include "{parent_path}{module_name}.h"'
     STR_INCLUDE_STD_MODULE = '#include <{module_name}.h>'
+    STR_INCLUDE_MODULE_MATH = STR_INCLUDE_USER_MODULE.format(parent_path='', module_name='math')
+    STR_INCLUDE_MODULE_STDIO = STR_INCLUDE_USER_MODULE.format(parent_path='', module_name='stdio')
 
     def __init__(self, save_to, config=None):
         self.config = {} if config is None else config
@@ -283,13 +285,38 @@ class TranslatorC:
 
     def process_call_function(self, name, pos_args):
         self.walk(name)
-        self.write('(')
-        for pos_arg_index, pos_arg in enumerate(pos_args, 1):
-            self.walk(pos_arg)
-            if pos_arg_index < len(pos_args):
-                self.write(', ')
 
-        self.write(')')
+        if self.raw_strings[-1] == 'print':
+            self.raw_imports.add(self.STR_INCLUDE_MODULE_STDIO)
+            self.raw_strings[-1] = 'printf'
+
+            if not pos_args:
+                self.write('("\\n")')
+            elif len(pos_args) == 1:
+                self.write('(')
+                self.walk(pos_args[0])
+                last_row = self.raw_strings[-1]
+                if last_row.endswith('"'):
+                    self.raw_strings.pop()
+                    self.write('{}\\n"'.format(last_row[:-1]))
+
+                self.write(')')
+            else:
+                self.write('(')
+                for pos_arg_index, pos_arg in enumerate(pos_args, 1):
+                    self.walk(pos_arg)
+                    if pos_arg_index < len(pos_args):
+                        self.write(', ')
+
+                self.write(')')
+        else:
+            self.write('(')
+            for pos_arg_index, pos_arg in enumerate(pos_args, 1):
+                self.walk(pos_arg)
+                if pos_arg_index < len(pos_args):
+                    self.write(', ')
+
+            self.write(')')
 
     def process_constant(self, value, parent_node):
         if value is None:
@@ -316,7 +343,7 @@ class TranslatorC:
 
     def process_binary_op(self, operand_left, operator: str, operand_right, is_need_brackets: bool):
         if operator == '**':
-            self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name='math'))
+            self.raw_imports.add(self.STR_INCLUDE_MODULE_MATH)
             self.write_lbracket(is_need_brackets)
             self.write(f'pow(')
             self.walk(operand_left)

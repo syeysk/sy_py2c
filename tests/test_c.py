@@ -677,6 +677,7 @@ class TestPow:
         )
         assert trans(source_code) == result_code
 
+
 @pytest.mark.parametrize(
     'method_name',
     (
@@ -727,3 +728,27 @@ def test_math_methods(method_name):
 #         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию
 #         source_code = "variable1: int = lambda x, y: x + y"
 #         self.assertBad(source_code, LambdaIsNotAllowedHereException)
+
+
+class TestPrint:
+    def test_print_empty(self):
+        source_code = (
+            'print()'
+        )
+        result_code = (
+            '#include "stdio.h"\n\n'
+            'printf("\\n");'
+            '\n'
+        )
+        assert trans(source_code) == result_code
+
+    def test_print_one_string_arg(self):
+        source_code = (
+            'print(\'Hello world\')'
+        )
+        result_code = (
+            '#include "stdio.h"\n\n'
+            'printf("Hello world\\n");'
+            '\n'
+        )
+        assert trans(source_code) == result_code
