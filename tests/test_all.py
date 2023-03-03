@@ -117,7 +117,7 @@ class ImportTestCase(Py2CTestCase):
         result_code = '#include <module1.h>\n\n'
         self.assertSuccess(source_code, result_code)
 
-    def test_invalid_import_one_module(self):
+    def test_invalid_import_one_module2(self):
         source_code = 'import module1 as m1'
         result_code = '#include <module1.h>\n\n'
         self.assertSuccess(source_code, result_code)
