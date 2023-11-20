@@ -32,11 +32,18 @@ with open('c_code.c') as c_file:
     translate(translator, my_python_code)
 ```
 
-## Methods' description
+## Function's and class' description
 
-`py2c.shortcuts.trans_c(source_code, write_to=None)`:
+`py2c.shortcuts.trans_c(source_code, write_to=None)` - translate a python-code into c-code. Arguments:
 - `source_code` - a source python-code like unicode string (type of `str`) or text file object (returning `open` function)
-- `write_to` - file object to write a result c-code. If `write_to` is `None` (as default), the function will return the c-code as string (type of `str`)
+- `write_to` - a file object to write a result c-code. If `write_to` is `None` (as default), the function will return the c-code as string (type of `str`)
+
+`py2c.TranslatorC(save_to)` - class of python-to-c translator. Contains some methods to translate constructions. Arguments:
+- `save_to` - a file object to write the result c-code
+
+`py2c.translate(translator, source_code: str)` - convert `source_code` into AST, walk it and build python-code. Arguments:
+- `translator` - a instance of translator. For example, `py2c.TranslatorC` or `py2c.TranslatorCpp`
+- `source_code` - a source python-code (type of `str`)
 
 ## Install
 
