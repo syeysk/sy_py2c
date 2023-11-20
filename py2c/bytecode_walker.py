@@ -348,17 +348,7 @@ def walk(converter, node):
 
     # Subscripting
     elif isinstance(node, ast.Subscript):
-        if isinstance(node.slice, ast.Index):  # ast.Index is for Python <=3.8;
-            node.slice.custom_ignore = True
-            index = node.slice.value
-        elif isinstance(node.slice, ast.Constant):  # ast.Constant is for Python >= 3.9
-            index = node.slice
-        elif isinstance(node.slice, ast.Name):  # ast.Constant is for Python >= 3.9
-            index = node.slice
-        else:
-            raise SourceCodeException('Unknown index node', node.slice)
-
-        converter.process_subscript(node.value, index)
+        converter.process_subscript(node.value, node.slice)
 
     # elif isinstance(node, ast.Slice):
     # elif isinstance(node, ast.ExtSlice):
@@ -393,6 +383,6 @@ def walk(converter, node):
 
 def translate(translator, source_code: str):
     translator._walk = walk
-    tree = ast.parse(source_code)
+    tree = ast.parse(source_code, feature_version=(3, 8))
     walk(translator, tree)
     translator.save()

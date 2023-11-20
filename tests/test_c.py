@@ -566,6 +566,11 @@ class TestAttributeAndMethods:
         result_code = 'int value = array_struct[4].struct_field;\n'
         assert trans(source_code) == result_code
 
+    def test_subscript_like_expression(self):
+        source_code = 'value: int = array_struct[i+5].struct_field'
+        result_code = 'int value = array_struct[i + 5].struct_field;\n'
+        assert trans(source_code) == result_code
+
 
 class TestBoolean:
     def test_false(self):

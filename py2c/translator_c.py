@@ -1,26 +1,13 @@
-from sys import version_info
-from typing import Optional, List, Tuple, Union
+from dataclasses import dataclass, field
 
 from py2c.exceptions import NoneIsNotAllowedException, SourceCodeException
 
 
-if version_info.minor > 6:
-    from dataclasses import dataclass, field
-
-    @dataclass
-    class Annotation:
-        type: str
-        array_sizes: List[str] = field(default_factory=list)
-        link: bool = False
-else:
-    class Annotation:
-        type: str
-        array_sizes = None
-        link = False
-
-        def __init__(self, **kwargs):
-            for n, v in kwargs.items():
-                setattr(self, n, v)
+@dataclass
+class Annotation:
+    type: str
+    array_sizes: list[str] = field(default_factory=list)
+    link: bool = False
 
 
 class RawString:
@@ -89,8 +76,8 @@ class TranslatorC:
     Источник: http://www.c-cpp.ru/books/include
     Подробнее: https://www.opennet.ru/docs/RUS/cpp/cpp-4.html
 
-    Поэтому в большинстве случаев импорт модуля будет транслироваться в импорт пользовательскго модуля, чтобы поведение
-    препроцессора C было схожим с интрепретатором Python
+    Поэтому в большинстве случаев импорт модуля будет транслироваться в импорт пользовательского модуля, чтобы поведение
+    препроцессора C было схожим с интерпретатором Python
     """
     STR_INCLUDE_USER_MODULE = '#include "{parent_path}{module_name}.h"'
     STR_INCLUDE_STD_MODULE = '#include <{module_name}.h>'
@@ -111,7 +98,7 @@ class TranslatorC:
         self.raw_strings = []
         self.raw_imports = set()
 
-    def write(self, data: Union[str, RawString]):
+    def write(self, data: str | RawString):
         self.raw_strings.append(data)
 
     def write_lbracket(self, is_need_brackets):
@@ -186,7 +173,7 @@ class TranslatorC:
 
         return Annotation(**params)
 
-    def process_init_variable(self, name: str, value_expr, annotation: Optional[str], value_lambda=None):
+    def process_init_variable(self, name: str, value_expr, annotation: str | None, value_lambda=None):
         annotation = self.parse_annotation(annotation)
         if annotation.type == 'preproc':
             self.write(f'#define ')
@@ -240,8 +227,8 @@ class TranslatorC:
     def process_def_function(
             self,
             name: str,
-            annotation: Optional[str],
-            pos_args: Tuple[str],
+            annotation: str | None,
+            pos_args: tuple[str],
             pos_args_defaults,
             body,
             docstring_comment: str
@@ -403,7 +390,7 @@ class TranslatorC:
 
             self.write(f'{self.ident}}}\n\n')
 
-    def process_import_from(self, module_name: str, imported_objects: List[Tuple[str]], level: int):
+    def process_import_from(self, module_name: str, imported_objects: list[tuple[str]], level: int):
         module_name = module_name.replace('.', '/')
         if level == 0:
             self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name=module_name))
@@ -413,7 +400,7 @@ class TranslatorC:
                 self.STR_INCLUDE_USER_MODULE.format(parent_path=parent_path, module_name=module_name),
             )
 
-    def process_import(self, module_names: List[Tuple[str]]):
+    def process_import(self, module_names: list[tuple[str]]):
         for module_name, module_alias in module_names:
             module_name = module_name.replace('.', '/')
             self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name=module_name))
@@ -451,7 +438,7 @@ class TranslatorC:
 
         self.write('\n\n')
 
-    def process_compare(self, operand_left, operators: List[Tuple[str]], operands_right):
+    def process_compare(self, operand_left, operators: list[tuple[str]], operands_right):
         self.walk(operand_left)
         for operator, operand_right in zip(operators, operands_right):
             self.write(f' {operator} ')
@@ -508,7 +495,7 @@ class TranslatorC:
             else:
                 self.write(f'.{attribute}')
 
-    def process_lambda(self, args: List[str], body):  # only for #define. TODO: build functions for another cases
+    def process_lambda(self, args: list[str], body):  # only for #define. TODO: build functions for another cases
         self.write('({}) '.format(','.join(args)))
         self.walk(body)
 

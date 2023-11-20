@@ -32,6 +32,12 @@ with open('c_code.c') as c_file:
     translate(translator, my_python_code)
 ```
 
+## Install
+
+```bash
+pip install git+https://github.com/syeysk/tool_py2c_translator.git
+```
+
 ## Function's and class' description
 
 `py2c.shortcuts.trans_c(source_code, write_to=None)` - translate a python-code into c-code. Arguments:
@@ -45,11 +51,7 @@ with open('c_code.c') as c_file:
 - `translator` - a instance of translator. For example, `py2c.TranslatorC` or `py2c.TranslatorCpp`
 - `source_code` - a source python-code (type of `str`)
 
-## Install
-
-```bash
-pip install git+https://github.com/syeysk/tool_py2c_translator.git
-```
+## Trash :-D
 
 Поддерживаются следующие операции:
 - присваивание переменным константных значений: целые положительные числа и строки.
