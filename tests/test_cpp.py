@@ -1,21 +1,11 @@
-from io import StringIO
-
 import pytest
 from pytest import raises
 
-from py2c.bytecode_walker import translate
 from py2c.exceptions import (
     InvalidAnnotationException,
     NoneIsNotAllowedException,
 )
-from py2c.translator_cpp import TranslatorCpp
-
-
-def trans(source_code):
-    file_stdout = StringIO()
-    translator = TranslatorCpp(save_to=file_stdout)
-    translate(translator, source_code)
-    return file_stdout.getvalue()
+from tests.utils import trans_cpp as trans
 
 
 class TestOperatorsAndVariables:
@@ -541,7 +531,7 @@ class TestStaticArrays:
         assert trans(source_code) == result_code
 
 
-# class DynamicArraysTestCase(Py2CTestCase):
+# class TestDynamicArrays:
 #     def test_array_init_dynamic_one_depth_empty(self):
 #         source_code = (
 #             'variable: int = []\n'
@@ -552,7 +542,7 @@ class TestStaticArrays:
 #             'malloc();'
 #             'variable.append(255);\n'
 #         )
-#         self.assertSuccess(source_code, result_code)
+#         assert trans(source_code) == result_code
 
 
 class TestAttributeAndMethods:
@@ -723,7 +713,7 @@ def test_math_methods(method_name):
 #             self.assertSuccess(source_code, result_code)
 
 
-# class LambdaTestCase(Py2CTestCase):
+# class TestLambda:
 #     def test_lambda(self):
 #         # Выбрасывать исключение, так как у аргументов лямбды невозможно указать аннотацию
 #         source_code = "variable1: int = lambda x, y: x + y"

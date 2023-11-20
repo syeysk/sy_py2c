@@ -1,8 +1,7 @@
 """Testing examples from the book Белов А. В. "Разработка устройств на микроконтроллерах" """
+import pytest
 
-import unittest
-
-from tests.py2c_test_case import Py2CTestCase
+from tests.utils import trans_c as trans
 
 
 SOURCE_MAIN = """
@@ -388,15 +387,11 @@ void display_show() {
 """
 
 
-class AuthorsProjectTestCase(Py2CTestCase):
-    @unittest.skip('The source code is not ready for transformin into the original result')
+class TestAuthorsProject:
+    @pytest.mark.skip('The source code is not ready for transformin into the original result')
     def test_main(self):
-        self.assertSuccess(SOURCE_MAIN, RESULT_MAIN)
+        assert trans(SOURCE_MAIN) == RESULT_MAIN
 
-    @unittest.skip('The source code is not ready for transformin into the original result')
+    @pytest.mark.skip('The source code is not ready for transformin into the original result')
     def test_indic(self):
-        self.assertSuccess(SOURCE_INDIC, RESULT_INDIC)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert trans(SOURCE_INDIC) == RESULT_INDIC

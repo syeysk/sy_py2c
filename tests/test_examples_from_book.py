@@ -1,9 +1,5 @@
 """Testing examples from the book Белов А. В. "Разработка устройств на микроконтроллерах" """
-
-import unittest
-
-from tests.py2c_test_case import Py2CTestCase
-
+from tests.utils import trans_c as trans
 
 SOURCE_LISTING_4_4 = """
 from tiny2313 import *
@@ -133,16 +129,12 @@ void main(void) {
 """
 
 
-class ExamplesTestCase(Py2CTestCase):
+class TestExamples:
     def test_example4_4(self):
-        self.assertSuccess(SOURCE_LISTING_4_4, RESULT_LISTING_4_4)
+        assert trans(SOURCE_LISTING_4_4) == RESULT_LISTING_4_4
 
     def test_example4_6(self):
-        self.assertSuccess(SOURCE_LISTING_4_6, RESULT_LISTING_4_6)
+        assert trans(SOURCE_LISTING_4_6) == RESULT_LISTING_4_6
 
     def test_example4_8(self):
-        self.assertSuccess(SOURCE_LISTING_4_8, RESULT_LISTING_4_8)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert trans(SOURCE_LISTING_4_8) == RESULT_LISTING_4_8
