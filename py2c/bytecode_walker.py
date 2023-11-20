@@ -391,7 +391,7 @@ def walk(converter, node):
         parents.pop()
 
 
-def translate(translator, source_code):
+def translate(translator, source_code: str):
     translator._walk = walk
     tree = ast.parse(source_code)
     walk(translator, tree)

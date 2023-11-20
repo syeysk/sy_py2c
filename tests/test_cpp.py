@@ -5,7 +5,7 @@ from py2c.exceptions import (
     InvalidAnnotationException,
     NoneIsNotAllowedException,
 )
-from tests.utils import trans_cpp as trans
+from py2c.shortcuts import trans_cpp as trans
 
 
 class TestOperatorsAndVariables:

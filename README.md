@@ -1,12 +1,55 @@
 # Translator from Python into C 
 
+## Examples
+
+Using is really simple with shortcuts:
+
+```python
+from py2c.shortcuts import trans_c
+
+my_python_code = '''
+    def hello(a: int, b: int = 5) -> string:
+        return 'good' if a + b > 0 else 'not good'
+'''
+
+c_code = trans_c(my_python_code)
+print(c_code)
+```
+
+Without shortcuts if you want more control:
+
+```python
+from py2c.bytecode_walker import translate
+from py2c.translator_cpp import TranslatorC
+
+my_python_code = '''
+    def hello(a: int, b: int = 5) -> string:
+        return 'good' if a + b > 0 else 'not good'
+'''
+
+with open('c_code.c') as c_file:
+    translator = TranslatorC(save_to=c_file)
+    translate(translator, my_python_code)
+```
+
+## Methods' description
+
+`py2c.shortcuts.trans_c(source_code, write_to=None)`:
+- `source_code` - a source python-code like unicode string (type of `str`) or text file object (returning `open` function)
+- `write_to` - file object to write a result c-code. If `write_to` is `None` (as default), the function will return the c-code as string (type of `str`)
+
+## Install
+
+```bash
+pip install git+https://github.com/syeysk/tool_py2c_translator.git
+```
+
 Поддерживаются следующие операции:
 - присваивание переменным константных значений: целые положительные числа и строки.
 
 Ограничения:
 - типы всегда объявлять через аннотацию при инициализации.
 - аннотация типов сработает, если она указана перед присвоением. Если указана в момент или после присвоения, то аннотация прогнорируется
-- все аргументы - обязательны (в планах - добавить возможность указывать аргументы по умолчанию)
 - функция всегда возвращает только одно значение (в планах - сделать возврат массива для возврата нескольких значений)
 
 - все целые положительные числа по умолчанию имеют c-тип "int"

@@ -1,7 +1,7 @@
 """Testing examples from the book Белов А. В. "Разработка устройств на микроконтроллерах" """
 import pytest
 
-from tests.utils import trans_c as trans
+from py2c.shortcuts import trans_c as trans
 
 
 SOURCE_MAIN = """

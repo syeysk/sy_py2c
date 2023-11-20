@@ -1,5 +1,5 @@
 """Testing examples from the book Белов А. В. "Разработка устройств на микроконтроллерах" """
-from tests.utils import trans_c as trans
+from py2c.shortcuts import trans_c as trans
 
 SOURCE_LISTING_4_4 = """
 from tiny2313 import *
