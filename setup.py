@@ -21,7 +21,7 @@ def get_long_description():
 
 setup(
     name='py2c',
-    version='0.0.5',
+    version='0.1.1',
     license='LGPL-3.0',
     description='Python into C syntax translator',
     packages=[
@@ -36,6 +36,12 @@ setup(
     download_url='https://github.com/syeysk/tool_py2c_translator/archive/master.zip',
 
     # install_requires=install_requires,
+
+    entry_points={
+        'console_scripts': [
+            'py2c = py2c.cli:run',
+        ]
+    },
 
     include_package_data=True,
     classifiers=[

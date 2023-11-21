@@ -1,4 +1,4 @@
-# Translator from Python into C 
+# Translator from Python into C ([русская версия](README.ru.md))
 
 ## Examples
 
@@ -47,9 +47,27 @@ pip install git+https://github.com/syeysk/tool_py2c_translator.git
 `py2c.TranslatorC(save_to)` - class of python-to-c translator. Contains some methods to translate constructions. Arguments:
 - `save_to` - a file object to write the result c-code
 
-`py2c.translate(translator, source_code: str)` - convert `source_code` into AST, walk it and build python-code. Arguments:
+`py2c.translate(translator, source_code: str)` - convert `source_code` into AST, walk it and build c-code. Arguments:
 - `translator` - a instance of translator. For example, `py2c.TranslatorC` or `py2c.TranslatorCpp`
 - `source_code` - a source python-code (type of `str`)
+
+## Command line interface examples
+
+Create *your_source_code.c* with c-code:
+```bash
+py2c your_source_code.py
+```
+
+Create *your_output_code.c* with c-code:
+```bash
+py2c your_source_code.py -o your_output_code.c
+```
+
+Print c-code into console:
+```bash
+py2c your_source_code.py -p
+```
+
 
 ## Trash :-D
 
@@ -58,7 +76,6 @@ pip install git+https://github.com/syeysk/tool_py2c_translator.git
 
 Ограничения:
 - типы всегда объявлять через аннотацию при инициализации.
-- аннотация типов сработает, если она указана перед присвоением. Если указана в момент или после присвоения, то аннотация прогнорируется
 - функция всегда возвращает только одно значение (в планах - сделать возврат массива для возврата нескольких значений)
 
 - все целые положительные числа по умолчанию имеют c-тип "int"
@@ -66,32 +83,11 @@ pip install git+https://github.com/syeysk/tool_py2c_translator.git
 
 # ROADMAP
 
-## Add dataset for:
-- [ ] initing difficult vars: generative lists, dicts
-- [ ] initing vars with dict (structure in C), list (arrays in C), tupple and set.
-- [ ] conditions and cycles: for, switch
-- [ ] functions: with multi-return.
-- [ ] c-pointers
-- [ ] collecting vars and placing their initing into start of program/function
-
-## Other
-
-- [ ] Add online-compilation by GCC on server
-- [ ] Add modules for calculating registers of microcontrollers (AVR, STM8). It will be a class with some properties: cpu-frequrence, settings of i2c, input/output and other
-- [ ] Set package manager (poetry)
-- [ ] Set allowed modules for import: math, microcontrollers.
-- [ ] Arithmetic priory
-- [ ] Brackets
-
-## Tests
-- [ ] tests of simple programs with different features
+[Roadmap](ROADMAP.md)
 
 ## Standarts of C
 
 About standarts:
-- http://www.open-std.org/jtc1/sc22/wg14/
-- 
-
 - [ ] K&R C
 - [ ] C89
 - [ ] C90
@@ -101,11 +97,8 @@ About standarts:
 - [ ] C17
 - [ ] C2x
 
-## Versions of Python
-
-- 3.6
-- 3.8
 
 ## Links
 
-- description of nodes: https://greentreesnakes.readthedocs.io/en/latest/nodes.html
+- [Description of Python nodes](https://greentreesnakes.readthedocs.io/en/latest/nodes.html)
+- [Standard of C](http://www.open-std.org/jtc1/sc22/wg14/)

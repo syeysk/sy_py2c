@@ -1,7 +1,7 @@
 [project]
 name = "py2c"
 description = "Python into C translator"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
 ]
