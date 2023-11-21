@@ -1,10 +1,13 @@
 [project]
 name = "py2c"
 description = "Python into C translator"
+redmi = "README.md"
 version = "0.1.1"
 authors = [
     { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
 ]
+license = "LGPL-3.0"
+maintainer = ["Konstantin Polyakov"]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
