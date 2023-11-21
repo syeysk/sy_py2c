@@ -32,10 +32,16 @@ with open('c_code.c') as c_file:
     translate(translator, my_python_code)
 ```
 
-## Install
+## Install/Uninstall
 
+Use this command to install Py2C:
 ```bash
 pip install git+https://github.com/syeysk/tool_py2c_translator.git
+```
+
+Use this command to uninstall Py2C:
+```bash
+pip uninstall py2c
 ```
 
 ## Function's and class' description
@@ -52,6 +58,8 @@ pip install git+https://github.com/syeysk/tool_py2c_translator.git
 - `source_code` - a source python-code (type of `str`)
 
 ## Command line interface examples
+
+You can use `py2c` or `python -m py2c` equivalently.
 
 Create *your_source_code.c* with c-code:
 ```bash
