@@ -44,8 +44,9 @@ setup(
     },
 
     include_package_data=True,
-    classifiers=[
-        'Programming Language :: Python :: 3.6',
+    classifiers=[  # source: https://pypi.org/classifiers/
+        'Programming Language :: Python :: 3 :: Only',
         'Topic :: Scientific/Engineering',
+        'Topic :: Text Processing',
     ]
 )

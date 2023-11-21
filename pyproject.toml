@@ -1,15 +1,15 @@
-[metadata]
+[project]
 name = "py2c"
 description = "Python into C translator"
 version = "0.1.1"
 authors = [
     { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
 ]
-classifiers =
-    Programming Language :: Python :: 3.6
-    Topic :: Scientific/Engineering
-
-[project]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Text Processing",
+]
 dependencies = [
 ]
 
