@@ -1,6 +1,6 @@
 # Транслятор из Python в C ([english version](README.md))
 
-## примеры
+## Примеры
 
 Используйте короткую функцию для простоты:
 
@@ -81,22 +81,9 @@ py2c your_source_code.py -p
 - все целые положительные числа по умолчанию имеют c-тип "int"
 - строки по умолчанию - тип "unsigned char"
 
-# ROADMAP
+# Дорожная карта
 
-[Roadmap](ROADMAP.md)
-
-## Standarts of C
-
-About standarts:
-- [ ] K&R C
-- [ ] C89
-- [ ] C90
-- [ ] C95
-- [ ] C99
-- [ ] C11
-- [ ] C17
-- [ ] C2x
-
+[Дорожная карта](ROADMAP.md)
 
 ## Links
 
