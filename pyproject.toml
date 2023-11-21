@@ -6,7 +6,7 @@ version = "0.1.1"
 authors = [
     { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
 ]
-license = "LGPL-3.0"
+license = "LICENSE"
 maintainer = ["Konstantin Polyakov"]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
