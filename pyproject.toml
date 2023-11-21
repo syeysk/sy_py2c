@@ -8,5 +8,8 @@ authors = [
 dependencies = [
 ]
 
+[project.scripts]
+py2c = "py2c.cli:run"
+
 [build-system]
 requires = ["setuptools", "wheel"]
