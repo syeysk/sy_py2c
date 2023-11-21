@@ -7,7 +7,9 @@ authors = [
     { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
 ]
 license = { file = "LICENSE.txt" }
-maintainers = ["Konstantin Polyakov"]
+maintainers = [
+   { name = "Polyakov Konstantin", email = "shyzik93@mail.ru" }
+]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
