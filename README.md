@@ -80,9 +80,15 @@ py2c your_source_code.py -p
 
 [Roadmap](ROADMAP.md)
 
-## Links
+## Contacts
 
-- Telegram to get fresh news: https://t.me/syeysk_it
+If you need help, ask me:
+- https://t.me/py_free_developer
+
+Telegram to get fresh news:
+- https://t.me/syeysk_it
+
+## Links
 
 - [Description of Python nodes](https://greentreesnakes.readthedocs.io/en/latest/nodes.html)
 - [Standard of C](http://www.open-std.org/jtc1/sc22/wg14/)
