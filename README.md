@@ -82,5 +82,7 @@ py2c your_source_code.py -p
 
 ## Links
 
+- Telegram to get fresh news: https://t.me/syeysk_it
+
 - [Description of Python nodes](https://greentreesnakes.readthedocs.io/en/latest/nodes.html)
 - [Standard of C](http://www.open-std.org/jtc1/sc22/wg14/)
