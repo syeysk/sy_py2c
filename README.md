@@ -42,7 +42,7 @@ with open('c_code.c') as c_file:
 
 Use this command to install Py2C:
 ```bash
-pip install git+https://github.com/syeysk/tool_py2c_translator.git
+pip install git+https://github.com/syeysk/sy_py2c.git
 ```
 
 Use this command to uninstall Py2C:
