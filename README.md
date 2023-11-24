@@ -1,6 +1,6 @@
 # Translator from Python into C ([русская версия](README.ru.md))
 
-Use Python-syntax to write a clear C-code for your microcontrollers
+Use Python-syntax to write a clear C-code for your microcontrollers:
 
 ![](docs/this-py2c-translator.png)
 
