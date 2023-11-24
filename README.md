@@ -4,7 +4,7 @@ Use Python-syntax to write a clear C-code for your microcontrollers
 
 ![](doc/this-py2c-translator.png)
 
-[About another variants of Python to C translating](docs/another_transloters.md)
+[About another variants of Python to C translating](docs/another_translaters.md)
 
 ## Examples
 
