@@ -96,6 +96,14 @@ py2c your_source_code.py -p
 
 [Дорожная карта](ROADMAP.ru.md)
 
+## Поддержка
+
+Если вам нужно помощь по Py2C, просто напишите мне:
+- https://t.me/py_free_developer
+
+Телеграм-канал, чтобы получать свежие новости:
+- https://t.me/it_syeysk
+
 ## Links
 
 - [Описание узлов Python](https://greentreesnakes.readthedocs.io/en/latest/nodes.html)

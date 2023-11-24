@@ -2,7 +2,7 @@
 
 Use Python-syntax to write a clear C-code for your microcontrollers
 
-![](doc/this-py2c-translator.png)
+![](docs/this-py2c-translator.png)
 
 [About another variants of Python to C translating](docs/another_translaters.md)
 
@@ -86,7 +86,7 @@ py2c your_source_code.py -p
 
 [Roadmap](ROADMAP.md)
 
-## Contacts
+## Support
 
 If you need help, ask me:
 - https://t.me/py_free_developer
