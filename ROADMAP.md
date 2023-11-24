@@ -1,4 +1,4 @@
-# ROADMAP
+# ROADMAP ([русская версия](ROADMAP.ru.md))
 
 ## Add dataset for:
 - [ ] initing difficult vars: generative lists, dicts

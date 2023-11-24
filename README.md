@@ -1,5 +1,11 @@
 # Translator from Python into C ([русская версия](README.ru.md))
 
+Use Python-syntax to write a clear C-code for your microcontrollers
+
+![](doc/this-py2c-translator.png)
+
+[About another variants of Python to C translating](docs/another_transloters.md)
+
 ## Examples
 
 Using is really simple with shortcuts:
