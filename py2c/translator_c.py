@@ -11,44 +11,34 @@ class Annotation:
 
 
 class RawString:
-    variables_data_by_level = {}
+    """Class to represent a string, which is changing during the translation"""
 
     def __init__(
         self,
+        translater,
         level: int,
-        name: str,
         ident: str,
     ):
-        self.name = name
+        self.translater = translater
         self.level = level
         self.ident = ident
+        self.prev_raw_string = None
 
-    @property
-    def variable_data(self, name: str = None, level: int = None):
-        level = self.level if level is None else level
-        name = self.name if name is None else name
-        while level >= 0:
-            variable_data = self.variables_data_by_level.get(level, {}).get(name)
-            if variable_data:
-                return variable_data
-
-            level -= 1
-
-        variable_data = {}
-        self.variables_data_by_level[level] = {name: variable_data}
-        return variable_data
-
-    def set_variable_data(self, name: str = None, level: int = None, **kwargs):
-        level = self.level if level is None else level
-        name = self.name if name is None else name
-        self.variables_data_by_level.setdefault(level, {}).setdefault(name, {}).update(kwargs)
+    def set_previous_raw_string(self, prev_raw_string):
+        self.prev_raw_string = prev_raw_string
 
 
 class DeclarationVariableString(RawString):
     """Класс управления параметрами объявления переменной"""
-    def __init__(self, annotation: Annotation, *args):
+    def __init__(self, annotation: Annotation, name: str, *args):
         super().__init__(*args)
         self.annotation = annotation
+        self.name = name
+        self.translater.set_variable_data(name, type=annotation.type)
+
+    @property
+    def variable_data(self):
+        return self.translater.get_variable_data(self.name, self.level)
 
     def __str__(self):
         variable_type = self.variable_data.get('variable_type')
@@ -62,9 +52,11 @@ class DeclarationVariableString(RawString):
         link = '*' if self.annotation.link else ''
         array_sizes = self.annotation.array_sizes or self.variable_data.get('array_sizes', [])
         str_array_sizes = ''.join([f'[{array_size}]' for array_size in array_sizes])
-        return (
-            f'{self.ident}{self.annotation.type} {link}{self.name}{str_array_sizes}'
-        )
+        # if self.prev_raw_string and isinstance(self.prev_raw_string, DeclarationVariableString):
+        #     if self.prev_raw_string.annotation.type == self.annotation.type:
+        #         return f', {link}{self.name}{str_array_sizes}'
+
+        return f'{self.ident}{self.annotation.type} {link}{self.name}{str_array_sizes}'
 
 
 class TranslatorC:
@@ -94,9 +86,27 @@ class TranslatorC:
         self._walk = None
         self.transit_data = {}
         self.current_function_names = []
+        self.variables_data = {}
 
         self.raw_strings = []
         self.raw_imports = set()
+
+    def get_variable_data(self, name: str, level: int = None):
+        level = self.level if level is None else level
+        while level >= 0:
+            variable_data = self.variables_data.get(level, {}).get(name)
+            if variable_data:
+                return variable_data
+
+            level -= 1
+
+        variable_data = {}
+        self.variables_data[level] = {name: variable_data}
+        return variable_data
+
+    def set_variable_data(self, name: str, level: int = None, **kwargs):
+        level = self.level if level is None else level
+        self.variables_data.setdefault(level, {}).setdefault(name, {}).update(kwargs)
 
     def write(self, data: str | RawString):
         self.raw_strings.append(data)
@@ -117,13 +127,23 @@ class TranslatorC:
             self.save_to.write(str_imports)
             self.save_to.write('\n\n')
 
-        for raw_string in self.raw_strings:
+        prev_raw_string = None
+        for raw_index, raw_string in enumerate(self.raw_strings):
             if isinstance(raw_string, RawString):
+                raw_string.set_previous_raw_string(prev_raw_string)
                 self.save_to.write(str(raw_string))
             else:
+                # # replace '}\n\n}' by '}\n}' . в таком виде код работает вне контеста и может повлиять, например, на произвольные строки
+                # if len(self.raw_strings) > raw_index+1:
+                #     next_string = self.raw_strings[raw_index + 1]
+                #     if isinstance(next_string, str) and next_string.strip() == '}' and raw_string.strip() in ('}', ''):
+                #         raw_string = raw_string[:-1]
+
                 self.save_to.write(raw_string)
 
-        RawString.variables_data_by_level.clear()
+            prev_raw_string = raw_string
+
+        self.variables_data.clear()
         self.raw_strings.clear()
         self.raw_imports.clear()
 
@@ -190,7 +210,7 @@ class TranslatorC:
 
             self.write('\n')
         else:
-            raw_string = DeclarationVariableString(annotation, self.level, name, self.ident)
+            raw_string = DeclarationVariableString(annotation, name, self, self.level, self.ident)
             self.write(raw_string)
             if value_expr:
                 self.write(' = ')
@@ -390,12 +410,27 @@ class TranslatorC:
 
             self.write(f'{self.ident}}}\n\n')
 
+    def walk_throw_module(self, module_name):
+        modules_dir = self.config.get('modules_dir')
+        if modules_dir:
+            module_path = modules_dir / f'{module_name}.py'
+            if module_path.exists() and module_path.is_file():
+                from py2c import bytecode_walker
+                translater = TranslatorC(save_to=None)
+                translater._walk = self._walk
+                with open(module_path) as module_file:
+                    bytecode_walker.translate(translater, module_file.read(), save_result=False)
+
+                self.variables_data.update(translater.variables_data)
+
     def process_import_from(self, module_name: str, imported_objects: list[tuple[str]], level: int):
         module_name = module_name.replace('.', '/')
         if level == 0:
+            self.walk_throw_module(module_name)
             self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name=module_name))
         else:
             parent_path = '' if level == 1 else '../'*(level-1)
+            self.walk_throw_module(module_name)
             self.raw_imports.add(
                 self.STR_INCLUDE_USER_MODULE.format(parent_path=parent_path, module_name=module_name),
             )
@@ -403,6 +438,7 @@ class TranslatorC:
     def process_import(self, module_names: list[tuple[str]]):
         for module_name, module_alias in module_names:
             module_name = module_name.replace('.', '/')
+            self.walk_throw_module(module_name)
             self.raw_imports.add(self.STR_INCLUDE_USER_MODULE.format(parent_path='', module_name=module_name))
 
     def process_expression(self, expression):
@@ -507,7 +543,7 @@ class TranslatorC:
 
     def process_array(self, elements, variable_name: str):
         if variable_name:
-            RawString(self.level, variable_name, self.ident).set_variable_data(array_sizes=[''])
+            self.set_variable_data(variable_name, array_sizes=[''])
 
         self.write('{')
         for index, element in enumerate(elements, 1):

@@ -155,10 +155,54 @@ def walk(converter, node):
         #     walk(converter, node.value, for_ifexpr=data)
         #     node.value = data['value']
 
-        converter.process_assign_variable(
-            names=node.targets,
-            value=node.value,
-        )
+        def guess_annotation(expr_value):
+            if isinstance(expr_value, ast.Constant):
+                value = expr_value.value
+                if isinstance(value, bool):
+                    return 'bool'
+                elif isinstance(value, str):
+                    return 'string'
+                elif isinstance(value, float):
+                    return 'float'
+                elif isinstance(value, int):
+                    return 'int'
+
+        is_ann_assign = False
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            name = node.targets[0].id
+            level = len(converter.variables_data)
+            variable_data = converter.get_variable_data(name, level)
+            if not variable_data:
+                if isinstance(node.value, ast.Constant):
+                    is_ann_assign = True
+                    annotation = guess_annotation(node.value)
+                    converter.process_init_variable(
+                        name=name,
+                        value_expr=node.value,
+                        annotation=annotation,
+                        value_lambda=None,
+                    )
+                elif isinstance(node.value, ast.UnaryOp) and isinstance(node.value.operand, ast.Constant):
+                    is_ann_assign = True
+                    annotation = guess_annotation(node.value.operand)
+                    operator = convert_unary_op(node.value.op)
+                    if operator == '-':
+                        annotation = f'signed__{annotation}'
+                    elif operator == '!':
+                        annotation = 'bool'
+
+                    converter.process_init_variable(
+                        name=name,
+                        value_expr=node.value,
+                        annotation=annotation,
+                        value_lambda=None,
+                    )
+
+        if not is_ann_assign:
+            converter.process_assign_variable(
+                names=node.targets,
+                value=node.value,
+            )
 
     elif isinstance(node, ast.AugAssign):
         converter.process_augassign_variable(
@@ -381,8 +425,9 @@ def walk(converter, node):
         parents.pop()
 
 
-def translate(translator, source_code: str):
+def translate(translator, source_code: str, save_result=True):
     translator._walk = walk
     tree = ast.parse(source_code, feature_version=(3, 8))
     walk(translator, tree)
-    translator.save()
+    if save_result:
+        translator.save()

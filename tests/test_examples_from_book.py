@@ -1,4 +1,6 @@
 """Testing examples from the book Белов А. В. "Разработка устройств на микроконтроллерах" """
+from pathlib import Path
+
 from py2c.shortcuts import trans_c as trans
 
 SOURCE_LISTING_4_4 = """
@@ -130,11 +132,13 @@ void main(void) {
 
 
 class TestExamples:
+    config = {'modules_dir': Path(__file__).parent / 'mc_modules'}
+
     def test_example4_4(self):
-        assert trans(SOURCE_LISTING_4_4) == RESULT_LISTING_4_4
+        assert trans(SOURCE_LISTING_4_4, config=self.config) == RESULT_LISTING_4_4
 
     def test_example4_6(self):
-        assert trans(SOURCE_LISTING_4_6) == RESULT_LISTING_4_6
+        assert trans(SOURCE_LISTING_4_6, config=self.config) == RESULT_LISTING_4_6
 
     def test_example4_8(self):
-        assert trans(SOURCE_LISTING_4_8) == RESULT_LISTING_4_8
+        assert trans(SOURCE_LISTING_4_8, config=self.config) == RESULT_LISTING_4_8

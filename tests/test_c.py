@@ -47,6 +47,25 @@ class TestOperatorsAndVariables:
     #     result_code = 'int a, b, c;\n'
     #     assert trans(source_code) == result_code
 
+    def test_init_variable_without_type(self):
+        source_code = (
+            'variable = 10\n'
+            'variable2 = -10\n'
+            'variable3 = 10.5\n'
+            'variable4 = -10.5\n'
+            'variable5 = True\n'
+            'variable6 = "i am a string"'
+        )
+        result_code = (
+            'int variable = 10;\n'
+            'signed int variable2 = -10;\n'
+            'float variable3 = 10.5;\n'
+            'signed float variable4 = -10.5;\n'
+            'bool variable5 = 1;\n'
+            'string variable6 = "i am a string";\n'
+        )
+        assert trans(source_code) == result_code
+
 
 class TestNone:
     def test_none_value_of_variable(self):
@@ -272,19 +291,47 @@ class TestFunction:
 class TestIf:
     # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if(self):
-        source_code = 'if variable > 1:\n    variable2 = 2'
-        result_code = 'if (variable > 1) {\n    variable2 = 2;\n}\n\n'
+        source_code = (
+            'variable2: int\n'
+            'if variable > 1:\n'
+            '    variable2 = 2'
+        )
+        result_code = (
+            'int variable2;\n'
+            'if (variable > 1) {\n'
+            '    variable2 = 2;\n'
+            '}\n\n'
+        )
         assert trans(source_code) == result_code
 
     # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if_else(self):
-        source_code = 'if variable > 1:\n    variable2 = 2\nelse:\n    variable3 = 3'
-        result_code = 'if (variable > 1) {\n    variable2 = 2;\n} else {\n    variable3 = 3;\n}\n\n'
+        source_code = (
+            'variable2: int\n'
+            'variable3: int\n'
+            'if variable > 1:\n'
+            '    variable2 = 2\n'
+            'else:\n'
+            '    variable3 = 3'
+        )
+        result_code = (
+            'int variable2;\n'
+            'int variable3;\n'
+            'if (variable > 1) {\n'
+            '    variable2 = 2;\n'
+            '} else {\n'
+            '    variable3 = 3;\n'
+            '}\n\n'
+        )
         assert trans(source_code) == result_code
 
     # TODO: так как одна инструкция. то не использовать фигурные скобки
     def test_if_elif_else(self):
         source_code = (
+            'var2: int\n'
+            'var3: int\n'
+            'var4: int\n'
+            'var5: int\n'
             'if var > 1:\n'
             '    var2 = 2\n'
             'elif var < -10:\n'
@@ -295,6 +342,10 @@ class TestIf:
             '    var3 = 3'
         )
         result_code = (
+            'int var2;\n'
+            'int var3;\n'
+            'int var4;\n'
+            'int var5;\n'
             'if (var > 1) {\n'
             '    var2 = 2;\n'
             '} else if (var < -10) {\n'
@@ -309,11 +360,13 @@ class TestIf:
 
     def test_if_multiline(self):
         source_code = (
+            'variable2: int\n'
             'if variable1 == 1:\n'
             '    variable2 = 2\n'
             '    function1()\n'
         )
         result_code = (
+            'int variable2;\n'
             'if (variable1 == 1) {\n'
             '    variable2 = 2;\n'
             '    function1();\n'
@@ -323,6 +376,8 @@ class TestIf:
 
     def test_if_else_multiline(self):
         source_code = (
+            'variable2: int\n'
+            'variable3: int\n'
             'if variable > 1:\n'
             '    variable2 = 2\n'
             '    function1()\n'
@@ -331,17 +386,24 @@ class TestIf:
             '    function2()\n'
         )
         result_code = (
+            'int variable2;\n'
+            'int variable3;\n'
             'if (variable > 1) {\n'
             '    variable2 = 2;\n'
             '    function1();\n'
             '} else {\n'
             '    variable3 = 3;\n'
             '    function2();\n'
-            '}\n\n')
+            '}\n\n'
+        )
         assert trans(source_code) == result_code
 
     def test_if_elif_else_multiline(self):
         source_code = (
+            'var2: int\n'
+            'var3: int\n'
+            'var4: int\n'
+            'var5: int\n'
             'if var > 1:\n'
             '    var2 = 2\n'
             '    function1()\n'
@@ -355,6 +417,10 @@ class TestIf:
             '    function3()\n'
         )
         result_code = (
+            'int var2;\n'
+            'int var3;\n'
+            'int var4;\n'
+            'int var5;\n'
             'if (var > 1) {\n'
             '    var2 = 2;\n'
             '    function1();\n'
@@ -395,6 +461,7 @@ class TestWhile:
 
     def test_while_else(self):
         source_code = (
+            'variable: int\n'
             'while variable < 10:\n'
             '    variable2 += 1\n'
             '    if variable2 == 0:\n'
@@ -405,6 +472,7 @@ class TestWhile:
             '   variable = 0'
         )
         result_code = (
+            'int variable;\n'
             'unsigned byte success = 1;\n'
             'while (variable < 10) {\n'
             '    variable2 += 1;\n'
@@ -455,14 +523,14 @@ class TestComment:
 
     def test_function_multiline_comment(self):
         source_code = (
-            'some_var = 1\n'
+            'some_var: int = 1\n'
             '"""\n'
             'test comment\n'
             'the second test comment\n'
             '"""\n'
         )
         result_code = (
-            'some_var = 1;\n'
+            'int some_var = 1;\n'
             '\n/*\n'
             'test comment\n'
             'the second test comment\n'
@@ -574,8 +642,8 @@ class TestAttributeAndMethods:
 
 class TestBoolean:
     def test_false(self):
-        source_code = 'variable = False'
-        result_code = 'variable = 0;\n'
+        source_code = 'variable: bool = False'
+        result_code = 'bool variable = 0;\n'
         assert trans(source_code) == result_code
 
     def test_true(self):
