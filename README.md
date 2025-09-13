@@ -88,10 +88,10 @@ py2c your_source_code.py -p
 
 ## Support
 
-If you need help, ask me:
-- https://t.me/py_free_developer
+Get help, make issue or discuss Py2C:
+- https://t.me/sy_py2c
 
-Telegram to get fresh news:
+Get fresh news about another my projects:
 - https://t.me/syeysk_it
 
 ## Links

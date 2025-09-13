@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="90"
+   height="57"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   version="1.0"
+   sodipodi:docbase="E:\Daten Sebastian\Webseiten\Roboter AG\_Basteln\logo"
+   sodipodi:docname="IC Wiki.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="7.42"
+     inkscape:cx="50"
+     inkscape:cy="50"
+     inkscape:document-units="px"
+     inkscape:current-layer="ic"
+     width="90px"
+     height="57px"
+     showguides="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="938"
+     inkscape:window-x="-4"
+     inkscape:window-y="-4" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:groupmode="layer"
+     id="ic"
+     inkscape:label="IC"
+     style="display:inline"
+     transform="translate(-0.213,-43.21294)">
+    <g
+       id="global"
+       transform="translate(-4.787,23.21294)">
+      <use
+         height="100"
+         width="100"
+         transform="translate(-13,-14)"
+         id="beinchen verdeckt"
+         xlink:href="#beinchen"
+         y="0"
+         x="0" />
+      <g
+         id="körper">
+        <path
+           style="fill:black;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 5,40 L 85,20 L 95,35 L 15,55 L 5,40"
+           id="oben"
+           sodipodi:nodetypes="ccccc" />
+        <path
+           style="fill:#282828;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 5,40 L 15,55 L 15,65 L 5,50"
+           id="links" />
+        <path
+           style="fill:#111;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 15,55 L 95,35 L 95,45 L 15,65 L 15,55 z "
+           id="vorne" />
+      </g>
+      <path
+         id="hilfslinie (durchsichtig)"
+         d="M 15,60 L 95,40"
+         style="fill:none;fill-rule:evenodd;stroke:none;stroke-width:0.25;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <g
+         id="beine">
+        <path
+           style="fill:#d3d3d3;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 19.75,58.930631 L 24.333427,57.795248 C 24.877404,58.074518 25.699381,59.528049 25.700048,59.485911 C 25.700676,59.446257 25.643684,64.85182 25.75,65.962183 C 25.735068,65.957192 25.759983,67.442609 24.169898,68.027976 L 23.987469,75.695206 C 23.016618,78.107653 22.137913,75.769688 22.137913,75.769688 L 22.175521,68.3994 C 20.881151,68.320536 20.595388,67.335814 20.595388,67.335814 L 20.740988,60.726888 L 19.75,58.930631 z "
+           id="beinchen"
+           sodipodi:nodetypes="ccscccccccc" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#beinchen"
+           id="beinchen2"
+           transform="translate(10.75,-2.673513)"
+           width="100"
+           height="100" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#beinchen"
+           id="beinchen3"
+           transform="translate(21.5,-5.36579)"
+           width="100"
+           height="100" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#beinchen"
+           id="beinchen4"
+           transform="translate(32.25,-8.043015)"
+           width="100"
+           height="100" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#beinchen"
+           id="beinchen5"
+           transform="translate(43,-10.73168)"
+           width="100"
+           height="100" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#beinchen"
+           id="beinchen6"
+           transform="translate(53.75,-13.41491)"
+           width="100"
+           height="100" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#beinchen"
+           id="beinchen7"
+           transform="translate(64.5,-16.10979)"
+           width="100"
+           height="100" />
+      </g>
+    </g>
+  </g>
+</svg>
