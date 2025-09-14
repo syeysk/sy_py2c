@@ -36,3 +36,17 @@ def trans_cpp(
         config: dict | None = None,
 ) -> str | None:
     return trans(source_code, TranslatorCpp, write_to, config=config)
+
+
+def compile_c(func):
+    import inspect
+    def _compile_c(*args, **kwargs):
+        c_code = trans_c(inspect.getsource(func))
+        c_file_path = 'temp.c'
+        with open(c_file_path, 'wt', encoding='utf-8') as file_c:
+            file_c.write(c_code)
+            file_c.write('\n\nint main() {return 0;}\n')
+        print(c_code)
+        return func(*args, **kwargs)
+    
+    return _compile_c

@@ -1,4 +1,4 @@
-from py2c.shortcuts import trans_c
+from py2c.shortcuts import trans_c, compile_c
 
 my_python_code = '''
 def hello(a: int, b: int = 5) -> string:
@@ -7,3 +7,10 @@ def hello(a: int, b: int = 5) -> string:
 
 c_code = trans_c(my_python_code)
 print(c_code)
+
+
+@compile_c
+def test(a: int, b: int) -> int:
+    return a * b
+
+print('result:', test(4, 6))
