@@ -16,6 +16,7 @@ classifiers = [
     "Topic :: Text Processing",
 ]
 dependencies = [
+    "pybind11==3.0.1",
 ]
 
 [project.scripts]

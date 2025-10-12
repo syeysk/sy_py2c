@@ -6,18 +6,35 @@
 
 ## Примеры
 
-Используйте короткую функцию для простоты:
+Транслируйте Python в C:
 
 ```python
 from py2c.shortcuts import trans_c
 
-my_python_code = '''
-    def hello(a: int, b: int = 5) -> string:
-        return 'good' if a + b > 0 else 'not good'
-'''
+print(trans_c('''
+def hello(a: int, b: int = 5) -> 'const char*':
+    return 'positive' if a + b > 0 else 'negative or zero'
 
-c_code = trans_c(my_python_code)
-print(c_code)
+def main() -> int:
+    print(hello(-10))
+    return 0
+'''))
+```
+
+Выведет на экран:
+```c
+ #include "stdio.h"
+
+const char* hello(int a, int b) {
+    return (a + b > 0) ? "positive" : "negative or zero";
+}
+const char* hello(int a) {
+    return hello(a, 5);
+}
+int main(void) {
+    printf(hello(-10));
+    return 0;
+}
 ```
 
 Без короткой функции у вас больше контроля:
@@ -27,8 +44,12 @@ from py2c.bytecode_walker import translate
 from py2c.translator_cpp import TranslatorC
 
 my_python_code = '''
-    def hello(a: int, b: int = 5) -> string:
-        return 'good' if a + b > 0 else 'not good'
+def hello(a: int, b: int = 5) -> 'const char*':
+    return 'positive' if a + b > 0 else 'negative or zero'
+
+def main() -> int:
+    print(hello(-10))
+    return 0
 '''
 
 with open('c_code.c') as c_file:
@@ -36,12 +57,52 @@ with open('c_code.c') as c_file:
     translate(translator, my_python_code)
 ```
 
+Транслируем Python в C и вызываем полученный C-код из Python:
+
+```python
+from py2c.shortcuts import inline_c
+
+
+def someFunctionCalledFromTheCppFunction(var: int, var2: int) -> int:
+    return var + var2
+
+
+def somePurePythonFunction(var: int, var2: int) -> int:
+    return var * var2
+
+
+@inline_c
+def someFunctionThatGetsCompiledAndCachedAtExecutionTime(var: int, var2: int) -> int:
+    return someFunctionCalledFromTheCppFunction(var, var2)
+
+
+theAnswerToTheUniverse: int = someFunctionThatGetsCompiledAndCachedAtExecutionTime(30, 2) + somePurePythonFunction(5, 2)
+print(f"theAnswerToTheUniverse: {theAnswerToTheUniverse}")
+```
+
+Выведет: `theAnswerToTheUniverse: 42`
+
+## Демо
+
+Транслируйте, компилируйте и выполните за один раз:
+```bash
+python3 demo.py 1> demo.c && g++ demo.c && g++ demo.c && ./a.out
+```
+
+Запустите Python-кода вместе с C-кодом:
+```bash
+python3 demo_inline_c.py
+```
+
 ## Установка/Удаление
 
 Используйте эту команду для установки Py2C:
 ```bash
 pip install git+https://github.com/syeysk/sy_py2c.git
+apt install python3.11-dev
 ```
+
+Укажите Вашу версию Python вместо `python3.11`.
 
 Используйте эту команду для удаления Py2C:
 ```bash

@@ -38,22 +38,7 @@ def trans_cpp(
     return trans(source_code, TranslatorCpp, write_to, config=config)
 
 
-def compile_c(func):
-    """Legacy decorator - translates to C but doesn't compile or swap function"""
-    import inspect
-    def _compile_c(*args, **kwargs):
-        c_code = trans_c(inspect.getsource(func))
-        c_file_path = 'temp.c'
-        with open(c_file_path, 'wt', encoding='utf-8') as file_c:
-            file_c.write(c_code)
-            file_c.write('\n\nint main() {return 0;}\n')
-        print(c_code)
-        return func(*args, **kwargs)
-
-    return _compile_c
-
-
-def compileInline(func):
+def inline_c(func):
     """
     Decorator that compiles a Python function (and its dependencies) to C++
     using pybind11, compiles it to a binary module, and swaps the original
@@ -65,7 +50,7 @@ def compileInline(func):
     - Automatically recompiles when source changes
 
     Example:
-        @compileInline
+        @inline_c
         def myFunction(a: int, b: int) -> int:
             return a + b
     """

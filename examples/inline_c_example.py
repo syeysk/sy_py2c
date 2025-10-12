@@ -1,10 +1,10 @@
 """
-Example demonstrating the compileInline decorator usage.
+Example demonstrating the inline_c decorator usage.
 
 This example is based on the feature request in issue #2.
 """
 
-from py2c.shortcuts import compileInline
+from py2c.shortcuts import inline_c
 
 
 def someFunctionCalledFromTheCppFunction(var: int, var2: int) -> int:
@@ -15,7 +15,7 @@ def somePurePythonFunction(var: int, var2: int) -> int:
     return var * var2
 
 
-@compileInline
+@inline_c
 def someFunctionThatGetsCompiledAndCachedAtExecutionTime(var: int, var2: int) -> int:
     return someFunctionCalledFromTheCppFunction(var, var2)
 

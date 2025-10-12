@@ -1,19 +1,19 @@
-"""Unit tests for the compileInline decorator"""
+"""Unit tests for the inline_c decorator"""
 
 import pytest
 import tempfile
 import shutil
 from pathlib import Path
 
-from py2c.shortcuts import compileInline
+from py2c.shortcuts import inline_c
 
 
 class TestCompileInline:
-    """Test suite for compileInline decorator functionality"""
+    """Test suite for inline_c decorator functionality"""
 
     def test_simple_function(self):
         """Test compiling a simple function with no dependencies"""
-        @compileInline
+        @inline_c
         def add_numbers(a: int, b: int) -> int:
             return a + b
 
@@ -22,7 +22,7 @@ class TestCompileInline:
 
     def test_function_with_operations(self):
         """Test function with multiple operations"""
-        @compileInline
+        @inline_c
         def calculate(x: int, y: int) -> int:
             return x * y + x - y
 
@@ -34,7 +34,7 @@ class TestCompileInline:
         def helper_add(a: int, b: int) -> int:
             return a + b
 
-        @compileInline
+        @inline_c
         def main_function(x: int, y: int) -> int:
             return helper_add(x, y)
 
@@ -43,7 +43,7 @@ class TestCompileInline:
 
     def test_caching_mechanism(self):
         """Test that caching works - function should work on multiple calls"""
-        @compileInline
+        @inline_c
         def cached_multiply(a: int, b: int) -> int:
             return a * b
 
@@ -57,7 +57,7 @@ class TestCompileInline:
 
     def test_negative_numbers(self):
         """Test with negative numbers"""
-        @compileInline
+        @inline_c
         def subtract(a: int, b: int) -> int:
             return a - b
 
@@ -66,7 +66,7 @@ class TestCompileInline:
 
     def test_zero_values(self):
         """Test with zero values"""
-        @compileInline
+        @inline_c
         def multiply_by_zero(a: int) -> int:
             return a * 0
 
@@ -81,7 +81,7 @@ class TestCompileInline:
         def level2(x: int) -> int:
             return level1(x) * 2
 
-        @compileInline
+        @inline_c
         def level3(x: int) -> int:
             return level2(x) + 5
 
@@ -97,7 +97,7 @@ class TestCompileInline:
         def somePurePythonFunction(var: int, var2: int) -> int:
             return var * var2
 
-        @compileInline
+        @inline_c
         def someFunctionThatGetsCompiledAndCachedAtExecutionTime(var: int, var2: int) -> int:
             return someFunctionCalledFromTheCppFunction(var, var2)
 
@@ -113,7 +113,7 @@ class TestCompileInlineCachePaths:
 
     def test_cache_directory_creation(self):
         """Test that cache directories are created properly"""
-        @compileInline
+        @inline_c
         def test_func(a: int) -> int:
             return a * 2
 
@@ -133,7 +133,7 @@ class TestCompileInlineFallback:
         # Note: This test verifies the decorator handles errors gracefully
         # The actual fallback depends on the translator's ability to handle the code
 
-        @compileInline
+        @inline_c
         def simple_function(a: int, b: int) -> int:
             return a + b
 
